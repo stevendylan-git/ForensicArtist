@@ -124,37 +124,37 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
     { id: 'facial_hair', label: 'Facial Hair' },
   ];
 
-  // Auditor role isolation per Rule & backend test `test_cases_need_to_know.py`
+  // Auditor role quarantine
   if (currentRole === 'AUDITOR') {
     return (
-      <section className="h-full flex flex-col bg-slate-950 border-r border-slate-800">
-        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+      <section className="h-full flex flex-col bg-[#FAF8F5] border-r border-[#E6DFD5]">
+        <div className="p-3.5 border-b border-[#E6DFD5] flex items-center justify-between bg-[#F6F1EA]">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-sm text-slate-100">Forensic Composite Canvas</h2>
-            <span className="text-xs font-mono text-slate-500">v{version}.0</span>
+            <h2 className="font-semibold text-sm text-stone-900">Forensic Composite Canvas</h2>
+            <span className="text-xs font-mono text-stone-500">v{version}.0</span>
           </div>
-          <span className="text-[11px] font-mono text-amber-400 bg-amber-950/40 border border-amber-800/60 px-2 py-0.5 rounded flex items-center gap-1">
+          <span className="text-[11px] font-mono text-[#8C6D46] bg-[#EFE8DE] border border-[#D5C6B4] px-2 py-0.5 rounded flex items-center gap-1">
             <Lock className="h-3 w-3" /> Evidentiary Redaction
           </span>
         </div>
 
         <div className="flex-1 p-8 flex flex-col items-center justify-center text-center">
-          <div className="max-w-md p-6 rounded-xl bg-slate-900/90 border border-amber-600/40 shadow-2xl space-y-4">
-            <div className="h-16 w-16 mx-auto rounded-full bg-amber-950/60 border border-amber-500/50 flex items-center justify-center text-amber-400">
+          <div className="max-w-md p-6 rounded-2xl bg-white border border-[#E0D5C7] shadow-xl space-y-4">
+            <div className="h-16 w-16 mx-auto rounded-full bg-[#FAF5EE] border border-[#D5C6B4] flex items-center justify-center text-[#8C6D46]">
               <ShieldAlert className="h-8 w-8 stroke-[1.5]" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-amber-300">Auditor Role Face Composite Isolation</h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+              <h3 className="text-base font-semibold text-stone-900">Auditor Role Face Composite Isolation</h3>
+              <p className="text-xs text-stone-600 mt-2 leading-relaxed">
                 Pursuant to statutory forensic compliance rules, <strong>Auditors are strictly quarantined from viewing biometric facial renderings</strong> to avoid cognitive contamination of external audits.
               </p>
-              <div className="mt-3 p-2.5 rounded bg-slate-950 text-[11px] font-mono text-slate-400 border border-slate-800 text-left space-y-1">
-                <div>• Audit Ledger Access: <span className="text-emerald-400">UNRESTRICTED</span></div>
-                <div>• Cryptographic Chain Verification: <span className="text-emerald-400">ENABLED</span></div>
-                <div>• Morphological Face Rendering: <span className="text-red-400">REDACTED / ISOLATED</span></div>
+              <div className="mt-3 p-3 rounded-xl bg-[#FAF7F2] text-[11px] font-mono text-stone-700 border border-[#E6DFD5] text-left space-y-1">
+                <div>• Audit Ledger Access: <span className="text-emerald-700 font-semibold">UNRESTRICTED</span></div>
+                <div>• Cryptographic Chain Verification: <span className="text-emerald-700 font-semibold">ENABLED</span></div>
+                <div>• Morphological Face Rendering: <span className="text-red-700 font-semibold">REDACTED / ISOLATED</span></div>
               </div>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-stone-500">
               Switch role back to Investigator, Forensic Artist, or Supervisor to view the composite.
             </p>
           </div>
@@ -164,32 +164,32 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
   }
 
   return (
-    <section className="h-full flex flex-col bg-slate-950 border-r border-slate-800">
-      {/* Canvas Viewport Toolbar */}
-      <div className="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-900/60">
+    <section className="h-full flex flex-col bg-[#FAF8F5] border-r border-[#E6DFD5]">
+      {/* Canvas Viewport Toolbar with Varied Button Sizes */}
+      <div className="p-2.5 border-b border-[#E6DFD5] flex flex-wrap items-center justify-between gap-2 bg-[#F6F1EA]/80 backdrop-blur-xs">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-sm text-slate-100 flex items-center gap-1.5">
-            <Camera className="h-4 w-4 text-cyan-400" />
+          <h2 className="font-semibold text-sm text-stone-900 flex items-center gap-1.5">
+            <Camera className="h-4 w-4 text-[#8C6D46]" />
             <span>Forensic Canvas</span>
           </h2>
-          <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800">
+          <span className="text-xs font-mono text-[#6B4E2E] bg-[#EFE8DE] px-2 py-0.5 rounded-md border border-[#D8CABE]">
             {hasGenerated ? `v${version}.0` : 'Draft'}
           </span>
           {hasGenerated && (
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-1.5 py-0.5 rounded flex items-center gap-1">
-              <Sparkles className="h-3 w-3" /> Forensic Composite
+            <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-emerald-600" /> Active Lead
             </span>
           )}
         </div>
 
         {/* Display Style & Overlay Controls */}
-        <div className="flex items-center flex-wrap gap-2 text-xs font-mono">
-          {/* Angle Selector Tabs */}
-          <div className="flex items-center bg-slate-900 rounded p-0.5 border border-slate-800">
+        <div className="flex items-center flex-wrap gap-1.5 text-xs font-mono">
+          {/* Angle Selector Tabs - Medium Segment */}
+          <div className="flex items-center bg-white rounded-lg p-0.5 border border-[#D5C6B4] shadow-2xs">
             <button
               onClick={() => setViewAngle('frontal')}
-              className={`px-2 py-1 rounded text-[11px] transition cursor-pointer ${
-                viewAngle === 'frontal' ? 'bg-cyan-600 text-white font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                viewAngle === 'frontal' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
               }`}
               title="Front-facing evidentiary composite"
             >
@@ -197,8 +197,8 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
             </button>
             <button
               onClick={() => setViewAngle('profile')}
-              className={`px-2 py-1 rounded text-[11px] transition cursor-pointer ${
-                viewAngle === 'profile' ? 'bg-cyan-600 text-white font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                viewAngle === 'profile' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
               }`}
               title="90-degree lateral profile composite"
             >
@@ -206,126 +206,123 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
             </button>
             <button
               onClick={() => setViewAngle('dual')}
-              className={`px-2 py-1 rounded text-[11px] transition cursor-pointer ${
-                viewAngle === 'dual' ? 'bg-cyan-600 text-white font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                viewAngle === 'dual' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
               }`}
               title="Dual-angle identification composite"
             >
-              Dual Angle
+              Dual
             </button>
           </div>
 
-          {/* Style Mode Toggle */}
-          <div className="flex items-center bg-slate-900 rounded p-0.5 border border-slate-800">
+          {/* Style Mode Toggle - Medium Segment */}
+          <div className="flex items-center bg-white rounded-lg p-0.5 border border-[#D5C6B4] shadow-2xs">
             <button
               onClick={() => onStyleModeChange('charcoal')}
-              className={`px-2 py-1 rounded text-[11px] transition cursor-pointer ${
-                styleMode === 'charcoal' ? 'bg-cyan-600 text-white font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                styleMode === 'charcoal' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
               }`}
               title="Archival graphite & charcoal sketch on textured paper"
             >
-              Charcoal Sketch
+              Sketch
             </button>
             <button
               onClick={() => onStyleModeChange('photoreal')}
-              className={`px-2 py-1 rounded text-[11px] transition cursor-pointer ${
-                styleMode === 'photoreal' ? 'bg-cyan-600 text-white font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                styleMode === 'photoreal' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
               }`}
               title="Chiaroscuro photoreal graphite tone"
             >
-              Chiaroscuro Tone
+              Toned
             </button>
           </div>
 
-          {/* Trigger Gemini AI Image Generation Button */}
-          <button
-            onClick={() => onGenerateComposite(styleMode)}
-            disabled={isGeneratingImage}
-            className="px-2.5 py-1 rounded bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white text-[11px] font-medium flex items-center gap-1 shadow-sm transition cursor-pointer"
-            title="Generate hyper-realistic composite using gemini-3.1-flash-lite-image"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-            <span>{isGeneratingImage ? 'Rendering...' : hasGenerated ? 'Regenerate AI' : 'Generate AI Face'}</span>
-          </button>
-
-          {/* Grid Toggle */}
-          <button
-            onClick={() => setShowGrid(!showGrid)}
-            className={`p-1.5 rounded border transition cursor-pointer ${
-              showGrid ? 'bg-cyan-950 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-            }`}
-            title="Toggle anatomical alignment grid"
-          >
-            <Grid3X3 className="h-3.5 w-3.5" />
-          </button>
-
-          {/* Landmarks Mesh Toggle */}
-          <button
-            onClick={() => setShowLandmarks(!showLandmarks)}
-            className={`p-1.5 rounded border transition cursor-pointer ${
-              showLandmarks ? 'bg-cyan-950 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-            }`}
-            title="Toggle facial landmarks mesh"
-          >
-            <Scan className="h-3.5 w-3.5" />
-          </button>
-
-          {/* Visual Confidence Heatmap Toggle */}
-          <button
-            onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`px-2 py-1 rounded text-[11px] font-mono border transition cursor-pointer flex items-center gap-1.5 ${
-              showHeatmap
-                ? 'bg-red-950/90 border-red-500 text-red-200 ring-1 ring-red-500/50 shadow-sm shadow-red-950'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-red-300'
-            }`}
-            title="Toggle Visual Confidence Heatmap: Highlights lower confidence regions to guide questioning"
-          >
-            <Flame className={`h-3.5 w-3.5 ${showHeatmap ? 'text-red-400 animate-pulse' : 'text-slate-400'}`} />
-            <span>Heatmap</span>
-            {showHeatmap && (
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
-            )}
-          </button>
-
-          {/* Facial Symmetry Assessment Toggle */}
+          {/* Facial Symmetry Assessment Button - Medium Size */}
           <button
             onClick={() => setShowSymmetry(!showSymmetry)}
-            className={`px-2 py-1 rounded text-[11px] font-mono border transition cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
               showSymmetry
-                ? 'bg-purple-950/90 border-purple-500 text-purple-200 ring-1 ring-purple-500/50 shadow-sm shadow-purple-950'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-purple-300'
+                ? 'bg-[#EAE2D5] border-[#8C6D46] text-[#5C452D] font-semibold ring-1 ring-[#8C6D46]'
+                : 'bg-white border-[#D5C6B4] text-stone-700 hover:text-[#8C6D46]'
             }`}
             title="Toggle craniometric facial symmetry assessment overlay and balance telemetry"
           >
-            <Scale className={`h-3.5 w-3.5 ${showSymmetry ? 'text-purple-400' : 'text-slate-400'}`} />
+            <Scale className={`h-3.5 w-3.5 ${showSymmetry ? 'text-[#8C6D46]' : 'text-stone-500'}`} />
             <span>Symmetry: {symmetry.percentageText}</span>
+          </button>
+
+          {/* Visual Confidence Heatmap Button - Medium Size */}
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+              showHeatmap
+                ? 'bg-red-50 border-red-400 text-red-800 ring-1 ring-red-400 font-semibold'
+                : 'bg-white border-[#D5C6B4] text-stone-700 hover:text-red-700'
+            }`}
+            title="Toggle Visual Confidence Heatmap: Highlights lower confidence regions to guide questioning"
+          >
+            <Flame className={`h-3.5 w-3.5 ${showHeatmap ? 'text-red-600 animate-pulse' : 'text-stone-500'}`} />
+            <span>Heatmap</span>
           </button>
 
           {/* Detailed Forensic Artist Brief Button */}
           {onOpenBriefModal && (
             <button
               onClick={onOpenBriefModal}
-              className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-600/50 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-white hover:bg-[#F5EFE6] text-[#6B4E2E] border border-[#D5C6B4] text-[11px] font-medium flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
               title="Open court-admissible detailed forensic narrative description for export"
             >
-              <FileText className="h-3.5 w-3.5 text-amber-400" />
-              <span>Artist Brief</span>
+              <FileText className="h-3.5 w-3.5 text-[#8C6D46]" />
+              <span>Brief</span>
             </button>
           )}
 
-          {/* Zoom controls */}
-          <div className="flex items-center bg-slate-900 rounded border border-slate-800">
+          {/* Prominent Primary Button: Trigger Gemini AI Image Generation - Large Size */}
+          <button
+            onClick={() => onGenerateComposite(styleMode)}
+            disabled={isGeneratingImage}
+            className="px-3 py-1.5 rounded-lg bg-[#8C6D46] hover:bg-[#785C3A] disabled:opacity-50 text-white text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+            title="Generate hyper-realistic composite using gemini-3.1-flash-lite-image"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[#FAF7F2]" />
+            <span>{isGeneratingImage ? 'Rendering...' : hasGenerated ? 'Regenerate AI' : 'Generate AI Face'}</span>
+          </button>
+
+          {/* Grid Toggle - Small Icon Button */}
+          <button
+            onClick={() => setShowGrid(!showGrid)}
+            className={`p-1.5 rounded-lg border transition cursor-pointer shadow-2xs ${
+              showGrid ? 'bg-[#EFE8DE] border-[#8C6D46] text-[#6B4E2E]' : 'bg-white border-[#D5C6B4] text-stone-600 hover:text-stone-900'
+            }`}
+            title="Toggle anatomical alignment grid"
+          >
+            <Grid3X3 className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Landmarks Mesh Toggle - Small Icon Button */}
+          <button
+            onClick={() => setShowLandmarks(!showLandmarks)}
+            className={`p-1.5 rounded-lg border transition cursor-pointer shadow-2xs ${
+              showLandmarks ? 'bg-[#EFE8DE] border-[#8C6D46] text-[#6B4E2E]' : 'bg-white border-[#D5C6B4] text-stone-600 hover:text-stone-900'
+            }`}
+            title="Toggle facial landmarks mesh"
+          >
+            <Scan className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Zoom controls - Small Compact Group */}
+          <div className="flex items-center bg-white rounded-lg border border-[#D5C6B4] shadow-2xs">
             <button
               onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))}
-              className="p-1.5 text-slate-400 hover:text-white cursor-pointer"
+              className="p-1.5 text-stone-500 hover:text-stone-900 cursor-pointer"
               title="Zoom out"
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[10px] px-1 text-slate-400">{Math.round(zoomLevel * 100)}%</span>
+            <span className="text-[10px] px-1 text-stone-600 font-mono">{Math.round(zoomLevel * 100)}%</span>
             <button
               onClick={() => setZoomLevel(Math.min(1.4, zoomLevel + 0.1))}
-              className="p-1.5 text-slate-400 hover:text-white cursor-pointer"
+              className="p-1.5 text-stone-500 hover:text-stone-900 cursor-pointer"
               title="Zoom in"
             >
               <ZoomIn className="h-3.5 w-3.5" />
@@ -336,7 +333,7 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
           {hasGenerated && (
             <button
               onClick={onResetCanvas}
-              className="p-1.5 rounded border border-slate-800 text-slate-400 hover:text-red-300 hover:bg-slate-900 transition cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#D5C6B4] bg-white text-stone-500 hover:text-red-700 hover:bg-red-50 transition cursor-pointer shadow-2xs"
               title="Reset to blank drafting canvas"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -346,28 +343,28 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
       </div>
 
       {/* Main Canvas Viewport Area */}
-      <div className="flex-1 p-4 flex flex-col items-center justify-center overflow-auto relative bg-slate-950/90">
+      <div className="flex-1 p-4 flex flex-col items-center justify-center overflow-auto relative bg-[#F4EFE6]/60">
         <div 
-          className="relative rounded-lg overflow-hidden border border-slate-800 shadow-2xl transition-transform duration-200"
+          className="relative rounded-xl overflow-hidden border border-[#D5C6B4] shadow-lg transition-transform duration-200 bg-white"
           style={{ transform: `scale(${zoomLevel})` }}
         >
           <canvas
             ref={canvasRef}
             width={480}
             height={480}
-            className="block max-w-full bg-slate-900"
+            className="block max-w-full bg-[#FAF7F0]"
           />
 
           {/* Loading / Rendering Progress Overlay */}
           {isGeneratingImage && (
-            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 space-y-3">
-              <div className="h-12 w-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-cyan-400 animate-pulse" />
+            <div className="absolute inset-0 bg-[#FAF7F0]/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center z-30 space-y-3">
+              <div className="h-12 w-12 rounded-full border-3 border-[#8C6D46] border-t-transparent animate-spin flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-[#8C6D46] animate-pulse" />
               </div>
               <div>
-                <p className="font-semibold text-sm text-cyan-300">Rendering Hyper-Realistic Composite</p>
-                <p className="text-xs text-slate-400 font-mono mt-1">Model: gemini-3.1-flash-lite-image</p>
-                <p className="text-[11px] text-slate-500 mt-1">Synthesizing photographic mugshot from FaceSpec attributes...</p>
+                <p className="font-semibold text-sm text-stone-900">Rendering Evidentiary Composite</p>
+                <p className="text-xs text-stone-600 font-mono mt-1">Model: gemini-3.1-flash-lite-image</p>
+                <p className="text-[11px] text-stone-500 mt-1">Synthesizing photographic approximation from FaceSpec...</p>
               </div>
             </div>
           )}
@@ -376,23 +373,23 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
 
       {/* Investigator Confidence Heatmap Guidance Panel */}
       {showHeatmap && (
-        <div className="border-t border-red-900/60 bg-red-950/40 p-3 animate-in fade-in duration-200">
+        <div className="border-t border-red-200 bg-red-50/70 p-3 animate-in fade-in duration-200">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
               </span>
-              <span className="text-xs font-semibold text-red-200 uppercase tracking-wider font-mono">
-                Investigator Recall Focus (Low Confidence Facial Zones)
+              <span className="text-xs font-semibold text-red-900 uppercase tracking-wider font-mono">
+                Investigator Recall Focus (Low Confidence Zones)
               </span>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
+            <span className="text-[11px] font-mono text-stone-600">
               {focusRegions.length} Questioning Targets
             </span>
           </div>
-          <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-            The thermal heatmap highlights regions where witness recall is unstated or low in confidence (<strong className="text-red-400">warm crimson/orange</strong>). Tap a zone or question below to direct non-leading interview elicitation:
+          <p className="text-[11px] text-stone-700 mb-2 leading-relaxed">
+            The thermal heatmap highlights regions where witness recall is unstated or low in confidence (<strong className="text-red-700">warm crimson/orange</strong>). Tap a zone or question below to direct non-leading interview elicitation:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
             {focusRegions.map((reg) => (
@@ -401,14 +398,14 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
                 onClick={() => onSelectRegion(selectedRegion === reg.id ? null : reg.id)}
                 className={`p-2.5 rounded-lg border text-xs transition cursor-pointer flex flex-col justify-between ${
                   selectedRegion === reg.id
-                    ? 'bg-red-900/60 border-red-400 text-white shadow-md shadow-red-950/60 ring-1 ring-red-400'
-                    : 'bg-slate-900/90 border-slate-800 hover:border-red-900/70 text-slate-200'
+                    ? 'bg-red-100 border-red-500 text-stone-900 shadow-sm ring-1 ring-red-400'
+                    : 'bg-white border-[#E4D8C8] hover:border-red-300 text-stone-800'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-red-300">{reg.label}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-red-950 text-red-400 border border-red-800">
+                    <span className="font-semibold text-red-900">{reg.label}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-red-100 text-red-800 border border-red-200">
                       {reg.stated ? `${Math.round(reg.confidence * 100)}% Conf` : '0% Unstated'}
                     </span>
                   </div>
@@ -419,7 +416,7 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
                         e.stopPropagation();
                         onAskQuestion(reg.suggestedPrompt);
                       }}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-900/80 hover:bg-red-700 text-red-100 flex items-center gap-1 transition cursor-pointer"
+                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 transition cursor-pointer"
                       title="Send this prompt directly to the cognitive interview"
                     >
                       <MessageSquare className="h-2.5 w-2.5" />
@@ -427,7 +424,7 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400 italic font-sans leading-snug">
+                <p className="text-[11px] text-stone-600 italic font-sans leading-snug">
                   "{reg.suggestedPrompt}"
                 </p>
               </div>
@@ -438,68 +435,68 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
 
       {/* Facial Symmetry Craniometric Balance Panel */}
       {showSymmetry && (
-        <div className="border-t border-purple-900/60 bg-purple-950/40 p-3 animate-in fade-in duration-200">
+        <div className="border-t border-[#DFD3C4] bg-[#F7F2EA] p-3 animate-in fade-in duration-200">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Scale className="h-4 w-4 text-purple-400" />
-              <span className="text-xs font-semibold text-purple-200 uppercase tracking-wider font-mono">
+              <Scale className="h-4 w-4 text-[#8C6D46]" />
+              <span className="text-xs font-semibold text-stone-900 uppercase tracking-wider font-mono">
                 Craniometric Symmetry Diagnostic & Balance Index
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-purple-900 text-purple-200 border border-purple-600/60">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#EAE2D5] text-[#5C452D] border border-[#D5C6B4]">
                 Index: {symmetry.percentageText}
               </span>
               <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${
                 symmetry.score >= 90
-                  ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                   : symmetry.score >= 85
-                  ? 'bg-amber-950 text-amber-300 border-amber-800'
-                  : 'bg-red-950 text-red-300 border-red-800'
+                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                  : 'bg-red-50 text-red-800 border-red-300'
               }`}>
                 {symmetry.classification}
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-            The overlay projects a vertical sagittal midline (magenta) and 4 orthogonal horizontal cranial planes (cyan/amber) to evaluate bilateral equilibrium:
+          <p className="text-[11px] text-stone-700 mb-2 leading-relaxed">
+            The overlay projects a vertical sagittal midline (magenta) and 4 orthogonal horizontal cranial planes to evaluate bilateral equilibrium:
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div className="p-2 rounded bg-slate-900/90 border border-purple-900/40">
-              <div className="text-[10px] text-slate-400 font-mono">Ocular Axis</div>
-              <div className="font-semibold text-purple-300">{symmetry.ocularBalance}%</div>
-              <div className="text-[10px] text-slate-400">Inter-pupillary tilt</div>
+            <div className="p-2 rounded-lg bg-white border border-[#DDD3C4]">
+              <div className="text-[10px] text-stone-500 font-mono">Ocular Axis</div>
+              <div className="font-semibold text-[#8C6D46]">{symmetry.ocularBalance}%</div>
+              <div className="text-[10px] text-stone-600">Inter-pupillary tilt</div>
             </div>
-            <div className="p-2 rounded bg-slate-900/90 border border-purple-900/40">
-              <div className="text-[10px] text-slate-400 font-mono">Nasal Midline</div>
-              <div className="font-semibold text-purple-300">{symmetry.nasalBalance}%</div>
-              <div className="text-[10px] text-slate-400">Bridge deviation</div>
+            <div className="p-2 rounded-lg bg-white border border-[#DDD3C4]">
+              <div className="text-[10px] text-stone-500 font-mono">Nasal Midline</div>
+              <div className="font-semibold text-[#8C6D46]">{symmetry.nasalBalance}%</div>
+              <div className="text-[10px] text-stone-600">Bridge deviation</div>
             </div>
-            <div className="p-2 rounded bg-slate-900/90 border border-purple-900/40">
-              <div className="text-[10px] text-slate-400 font-mono">Labial Cant</div>
-              <div className="font-semibold text-purple-300">{symmetry.labialBalance}%</div>
-              <div className="text-[10px] text-slate-400">Commissure level</div>
+            <div className="p-2 rounded-lg bg-white border border-[#DDD3C4]">
+              <div className="text-[10px] text-stone-500 font-mono">Labial Cant</div>
+              <div className="font-semibold text-[#8C6D46]">{symmetry.labialBalance}%</div>
+              <div className="text-[10px] text-stone-600">Commissure level</div>
             </div>
-            <div className="p-2 rounded bg-slate-900/90 border border-purple-900/40">
-              <div className="text-[10px] text-slate-400 font-mono">Mandibular Balance</div>
-              <div className="font-semibold text-purple-300">{symmetry.mandibularBalance}%</div>
-              <div className="text-[10px] text-slate-400">Gonial & chin centring</div>
+            <div className="p-2 rounded-lg bg-white border border-[#DDD3C4]">
+              <div className="text-[10px] text-stone-500 font-mono">Mandibular Balance</div>
+              <div className="font-semibold text-[#8C6D46]">{symmetry.mandibularBalance}%</div>
+              <div className="text-[10px] text-stone-600">Gonial & chin centring</div>
             </div>
           </div>
-          <p className="text-[10px] text-purple-300/80 mt-2 font-mono italic">
+          <p className="text-[10px] text-stone-600 mt-2 font-mono italic">
             Clinical Note: Human faces exhibit natural 88–96% bilateral variance. Scores below 85% denote marked asymmetrical identifiers crucial for suspect line-up differentiation.
           </p>
         </div>
       )}
 
       {/* Region Selector & Locality Bar */}
-      <div className="p-3 border-t border-slate-800 bg-slate-900/80">
+      <div className="p-2.5 border-t border-[#E6DFD5] bg-[#F6F1EA]">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 text-xs text-slate-300">
-            <Layers className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="font-medium">Region-Scoped Locality Controls:</span>
+          <div className="flex items-center gap-1.5 text-xs text-stone-700">
+            <Layers className="h-3.5 w-3.5 text-[#8C6D46]" />
+            <span className="font-medium">Region-Scoped Edits:</span>
           </div>
-          <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded">
+          <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
             {hasGenerated ? 'Locality: 98.6% untouched' : 'Ready for elicitation'}
           </span>
         </div>
@@ -509,14 +506,14 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
           {regions.map((r) => {
             const isSelected = selectedRegion === r.id;
             return (
-              <div key={r.id} className="flex items-center">
+              <div key={r.id} className="flex items-center shadow-2xs">
                 <button
                   type="button"
                   onClick={() => onSelectRegion(isSelected ? null : r.id)}
-                  className={`px-2.5 py-1 text-xs rounded-l border transition cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs rounded-l-md border transition cursor-pointer ${
                     isSelected
-                      ? 'bg-cyan-600 border-cyan-500 text-white font-medium'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-[#8C6D46] border-[#785C3A] text-white font-medium'
+                      : 'bg-white border-[#D5C6B4] text-stone-700 hover:bg-[#F5EFE6]'
                   }`}
                 >
                   {r.label}
@@ -524,7 +521,7 @@ export const CompositeCanvas: React.FC<CompositeCanvasProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenGridForRegion(r.id)}
-                  className="px-1.5 py-1 text-xs bg-slate-950 hover:bg-cyan-950 hover:text-cyan-300 border-y border-r border-slate-700 text-slate-400 rounded-r transition cursor-pointer"
+                  className="px-1.5 py-1 text-xs bg-[#FAF7F2] hover:bg-[#EFE8DE] border-y border-r border-[#D5C6B4] text-[#6B4E2E] rounded-r-md transition cursor-pointer"
                   title={`Generate 3x3 candidate variations for ${r.label}`}
                 >
                   <Grid3X3 className="h-3 w-3" />

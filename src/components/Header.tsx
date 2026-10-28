@@ -8,7 +8,9 @@ import {
   FolderLock,
   History,
   Grid3X3,
-  Download
+  Download,
+  SlidersHorizontal,
+  FileCheck
 } from 'lucide-react';
 import { UserRole, ForensicCase, AuditVerificationResult } from '../types';
 
@@ -23,6 +25,9 @@ interface HeaderProps {
   onOpenTimelineModal: () => void;
   onOpenGridModal: () => void;
   onOpenExportModal: () => void;
+  onToggleFeatureDrawer?: () => void;
+  isFeatureDrawerOpen?: boolean;
+  statedCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -36,99 +41,131 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTimelineModal,
   onOpenGridModal,
   onOpenExportModal,
+  onToggleFeatureDrawer,
+  isFeatureDrawerOpen = false,
+  statedCount = 0,
 }) => {
   return (
-    <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-5 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
+    <header className="border-b border-[#E6DFD5] bg-[#FAF8F5]/95 backdrop-blur-md px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 shadow-2xs">
       {/* Brand & App Info */}
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+        <div className="h-9 w-9 rounded-lg bg-[#EFE8DE] border border-[#D8CABE] flex items-center justify-center text-[#8C6D46] shadow-2xs">
           <Cpu className="h-5 w-5" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-semibold tracking-tight text-white text-base">Forensic Face Composite Studio</h1>
-            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">PS-01</span>
+            <h1 className="font-semibold tracking-tight text-stone-900 text-sm sm:text-base">
+              Forensic Face Composite Studio
+            </h1>
+            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#EFE8DE] text-[#6B4E2E] border border-[#D8CABE]">
+              EVIDENTIARY
+            </span>
           </div>
-          <p className="text-xs text-slate-400">Cognitive Elicitation & Evidentiary Composite System</p>
+          <p className="text-xs text-stone-500 hidden sm:block">
+            Cognitive Elicitation & Biometric Reconstruction
+          </p>
         </div>
       </div>
 
-      {/* Case & Action Bar */}
+      {/* Case & Action Bar with Varied Button Sizes */}
       <div className="flex items-center flex-wrap gap-2 text-xs font-mono">
-        {/* Active Case Selector */}
+        {/* Active Case Selector - Medium Button */}
         <button
           onClick={onOpenCaseModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#F5EFE6] text-stone-800 border border-[#D5C6B4] transition cursor-pointer shadow-2xs"
           title="Switch or view forensic case details"
         >
-          <FolderLock className="h-3.5 w-3.5 text-amber-400" />
-          <span className="text-slate-400">Case:</span>
-          <span className="font-semibold text-white">{activeCase.caseNumber}</span>
+          <FolderLock className="h-3.5 w-3.5 text-[#8C6D46]" />
+          <span className="text-stone-500">Case:</span>
+          <span className="font-semibold text-stone-900">{activeCase.caseNumber}</span>
         </button>
 
-        {/* Timeline Button */}
+        {/* Timeline Button - Medium Button */}
         <button
           onClick={onOpenTimelineModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#F5EFE6] text-stone-700 border border-[#D5C6B4] transition cursor-pointer shadow-2xs"
           title="Version history, compare, undo, redo"
         >
-          <History className="h-3.5 w-3.5 text-cyan-400" />
+          <History className="h-3.5 w-3.5 text-[#8C6D46]" />
           <span>Timeline</span>
         </button>
 
-        {/* 3x3 Candidate Grid Button */}
+        {/* 3x3 Candidate Grid Button - Medium Button */}
         <button
           onClick={onOpenGridModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#F5EFE6] text-stone-700 border border-[#D5C6B4] transition cursor-pointer shadow-2xs"
           title="Generate 3x3 candidate variations of features"
         >
-          <Grid3X3 className="h-3.5 w-3.5 text-purple-400" />
+          <Grid3X3 className="h-3.5 w-3.5 text-[#8C6D46]" />
           <span>Recognition Grid</span>
         </button>
 
-        {/* Export Docket Button */}
-        <button
-          onClick={onOpenExportModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition cursor-pointer"
-          title="Export forensic docket as PNG or PDF"
-        >
-          <Download className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Export Docket</span>
-        </button>
-
-        {/* RBAC Role Selector */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800">
-          <UserCheck className="h-3.5 w-3.5 text-cyan-400" />
-          <span className="text-slate-400">Role:</span>
-          <select
-            value={currentRole}
-            onChange={(e) => onRoleChange(e.target.value as UserRole)}
-            className="bg-transparent text-cyan-300 font-semibold focus:outline-none cursor-pointer pr-1"
-          >
-            <option value="INVESTIGATOR" className="bg-slate-900 text-slate-200">Investigator</option>
-            <option value="FORENSIC_ARTIST" className="bg-slate-900 text-slate-200">Forensic Artist</option>
-            <option value="SUPERVISOR" className="bg-slate-900 text-slate-200">Supervisor</option>
-            <option value="ADMIN" className="bg-slate-900 text-slate-200">Admin</option>
-            <option value="AUDITOR" className="bg-slate-900 text-amber-300">Auditor</option>
-          </select>
-        </div>
-
-        {/* Audit Ledger Status Button */}
+        {/* Audit Ledger Status Button - Small Compact Pill */}
         <button
           onClick={onOpenAuditModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800/70 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#F5EFE6] hover:bg-[#EFE7DC] text-[#6B4E2E] border border-[#D8CABE] transition cursor-pointer shadow-2xs"
           title="View and verify cryptographically chained SHA-256 audit ledger"
         >
-          <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
-          <span>Audit Ledger</span>
-          <span className="px-1.5 py-0.2 rounded bg-cyan-900/80 text-[10px] text-cyan-200 border border-cyan-700">
+          <ShieldCheck className="h-3.5 w-3.5 text-[#8C6D46]" />
+          <span className="text-[11px]">Ledger</span>
+          <span className="px-1.5 py-0.2 rounded bg-white text-[10px] text-[#6B4E2E] border border-[#D5C6B4]">
             {totalAuditEntries}
           </span>
           {auditResult?.isValid ? (
-            <span className="h-2 w-2 rounded-full bg-emerald-400" title="Cryptographic chain valid" />
+            <span className="h-2 w-2 rounded-full bg-emerald-600" title="Cryptographic chain valid" />
           ) : (
             <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" title="Chain verification warning" />
           )}
+        </button>
+
+        {/* RBAC Role Selector */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D5C6B4] shadow-2xs">
+          <UserCheck className="h-3.5 w-3.5 text-[#8C6D46]" />
+          <span className="text-stone-500 text-[11px]">Role:</span>
+          <select
+            value={currentRole}
+            onChange={(e) => onRoleChange(e.target.value as UserRole)}
+            className="bg-transparent text-stone-800 font-semibold focus:outline-none cursor-pointer pr-1 text-[11px]"
+          >
+            <option value="INVESTIGATOR" className="bg-white text-stone-800">Investigator</option>
+            <option value="FORENSIC_ARTIST" className="bg-white text-stone-800">Forensic Artist</option>
+            <option value="SUPERVISOR" className="bg-white text-stone-800">Supervisor</option>
+            <option value="ADMIN" className="bg-white text-stone-800">Admin</option>
+            <option value="AUDITOR" className="bg-white text-stone-800">Auditor</option>
+          </select>
+        </div>
+
+        {/* Features Side Drawer Toggle Button - Distinctive Highlight Button */}
+        {onToggleFeatureDrawer && (
+          <button
+            onClick={onToggleFeatureDrawer}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition cursor-pointer shadow-2xs ${
+              isFeatureDrawerOpen
+                ? 'bg-[#8C6D46] border-[#785C3A] text-white'
+                : 'bg-[#F2ECE1] hover:bg-[#EAE1D2] border-[#D4C5B3] text-[#5C452D]'
+            }`}
+            title="Expand / collapse rightmost FaceSpec facial features inspector drawer"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Features</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+              isFeatureDrawerOpen
+                ? 'bg-white/20 text-white'
+                : 'bg-white text-[#6B4E2E] border border-[#D5C6B4]'
+            }`}>
+              {statedCount}
+            </span>
+          </button>
+        )}
+
+        {/* Export Docket Button - Prominent CTA */}
+        <button
+          onClick={onOpenExportModal}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8C6D46] hover:bg-[#785C3A] text-white font-medium transition cursor-pointer shadow-2xs"
+          title="Export forensic docket as PNG or PDF"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>Export</span>
         </button>
       </div>
     </header>

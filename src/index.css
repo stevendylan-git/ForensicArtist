@@ -10,18 +10,18 @@
   }
 }
 
-/* Custom scrollbars for forensic inspectors */
+/* Custom scrollbars for forensic studio */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #F4EFE6;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+  background: #D5C8B5;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 1);
+  background: #B8A68F;
 }

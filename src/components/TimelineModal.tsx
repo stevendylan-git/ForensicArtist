@@ -58,14 +58,15 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
       { key: 'hair_style', name: 'Hair Style', getVal: s => s.hair.style.value },
       { key: 'hair_color', name: 'Hair Color', getVal: s => s.hair.color.value },
       { key: 'eyebrows', name: 'Eyebrows', getVal: s => s.eyebrows.value },
-      { key: 'eyes_shape', name: 'Eyes Shape', getVal: s => s.eyes.shape.value },
-      { key: 'eyes_color', name: 'Eyes Color', getVal: s => s.eyes.color.value },
-      { key: 'nose_width', name: 'Nose Width', getVal: s => s.nose.width.value },
+      { key: 'eyes_shape', name: 'Eye Shape', getVal: s => s.eyes.shape.value },
+      { key: 'eyes_color', name: 'Eye Color', getVal: s => s.eyes.color.value },
       { key: 'nose_bridge', name: 'Nose Bridge', getVal: s => s.nose.bridge.value },
-      { key: 'mouth_lips', name: 'Mouth / Lips', getVal: s => s.mouth_lips.value },
-      { key: 'jawline_chin', name: 'Jawline & Chin', getVal: s => s.jawline_chin.value },
+      { key: 'nose_width', name: 'Nose Width', getVal: s => s.nose.width.value },
+      { key: 'mouth_lips', name: 'Mouth & Lips', getVal: s => s.mouth_lips.value },
+      { key: 'jawline_chin', name: 'Jaw & Chin', getVal: s => s.jawline_chin.value },
       { key: 'facial_hair', name: 'Facial Hair', getVal: s => s.facial_hair.value },
-      { key: 'marks', name: 'Distinguishing Marks', getVal: s => s.distinguishing_marks.type.value },
+      { key: 'distinguishing_marks', name: 'Marks', getVal: s => s.distinguishing_marks.type.value },
+      { key: 'accessories', name: 'Accessories', getVal: s => s.accessories.value },
     ];
 
     for (const f of fields) {
@@ -78,52 +79,52 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
     return changes;
   };
 
-  const diffItems = compareMode ? computeDiff(verA.faceSpec, verB.faceSpec) : [];
+  const diffList = computeDiff(verA.faceSpec, verB.faceSpec);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-2xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#FAF8F5] border border-[#D5C6B4] rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <div className="p-4 border-b border-[#E6DFD5] flex items-center justify-between bg-[#F6F1EA]">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <div className="h-8 w-8 rounded-lg bg-[#EFE8DE] border border-[#D8CABE] flex items-center justify-center text-[#8C6D46]">
               <History className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="font-semibold text-base text-white">Composite Version Timeline & Morphological Audit</h2>
-              <p className="text-xs text-slate-400">
-                Evidentiary timeline with non-destructive versioning, locality scores, and diff analysis.
+              <h2 className="font-semibold text-base text-stone-900">Composite Evolution Timeline & Comparative Diff</h2>
+              <p className="text-xs text-stone-600">
+                Statutory audit trail of witness elicitation iterations and morphological progression.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Undo / Redo controls */}
-            <button
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer flex items-center gap-1 text-xs"
-              title="Undo last edit (Revert to V - 1)"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              <span>Undo</span>
-            </button>
-            <button
-              onClick={onRedo}
-              disabled={!canRedo}
-              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer flex items-center gap-1 text-xs"
-              title="Redo previous reverted edit"
-            >
-              <Redo2 className="h-3.5 w-3.5" />
-              <span>Redo</span>
-            </button>
+            {/* Quick Undo / Redo controls */}
+            <div className="flex items-center bg-white rounded-lg border border-[#D5C6B4] p-0.5 shadow-2xs">
+              <button
+                onClick={onUndo}
+                disabled={!canUndo}
+                className="p-1.5 text-stone-600 hover:text-stone-900 disabled:opacity-40 transition cursor-pointer"
+                title="Undo previous modification"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onRedo}
+                disabled={!canRedo}
+                className="p-1.5 text-stone-600 hover:text-stone-900 disabled:opacity-40 transition cursor-pointer"
+                title="Redo modification"
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </div>
 
             <button
               onClick={() => setCompareMode(!compareMode)}
-              className={`px-3 py-1.5 rounded text-xs font-medium border flex items-center gap-1.5 transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition cursor-pointer shadow-2xs ${
                 compareMode
-                  ? 'bg-cyan-600 border-cyan-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-[#8C6D46] border-[#785C3A] text-white'
+                  : 'bg-white border-[#D5C6B4] text-stone-700 hover:bg-[#F5EFE6]'
               }`}
             >
               <GitCompare className="h-3.5 w-3.5" />
@@ -132,7 +133,7 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-[#EAE1D2] transition cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -141,15 +142,15 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
 
         {/* Content View: Side-by-Side Compare Mode OR Timeline List */}
         {compareMode ? (
-          <div className="flex-1 p-5 overflow-y-auto bg-slate-950 space-y-5">
+          <div className="flex-1 p-5 overflow-y-auto bg-[#FDFBF7] space-y-5">
             {/* Compare Selectors */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-mono text-cyan-400 font-semibold">Version A:</span>
+              <div className="p-3 bg-white rounded-xl border border-[#D5C6B4] flex items-center justify-between shadow-2xs">
+                <span className="text-xs font-mono text-[#8C6D46] font-semibold">Version A:</span>
                 <select
                   value={verAIndex}
                   onChange={(e) => setVerAIndex(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 text-slate-200 text-xs px-2 py-1 rounded"
+                  className="bg-[#FAF8F5] border border-[#D5C6B4] text-stone-800 text-xs px-2.5 py-1 rounded-md"
                 >
                   {versions.map((v, i) => (
                     <option key={v.id} value={i}>
@@ -159,12 +160,12 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
                 </select>
               </div>
 
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-mono text-purple-400 font-semibold">Version B:</span>
+              <div className="p-3 bg-white rounded-xl border border-[#D5C6B4] flex items-center justify-between shadow-2xs">
+                <span className="text-xs font-mono text-[#6B4E2E] font-semibold">Version B:</span>
                 <select
                   value={verBIndex}
                   onChange={(e) => setVerBIndex(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-700 text-slate-200 text-xs px-2 py-1 rounded"
+                  className="bg-[#FAF8F5] border border-[#D5C6B4] text-stone-800 text-xs px-2.5 py-1 rounded-md"
                 >
                   {versions.map((v, i) => (
                     <option key={v.id} value={i}>
@@ -178,12 +179,9 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
             {/* Side-by-Side Visual Canvas Views */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Version A View */}
-              <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col items-center">
-                <div className="w-full flex items-center justify-between mb-3 text-xs font-mono">
-                  <span className="text-cyan-400 font-bold">Version {verA.version}.0 (Baseline)</span>
-                  <span className="text-slate-400 text-[11px]">{verA.timestamp}</span>
-                </div>
-                <div className="w-64 h-64 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
+              <div className="p-4 rounded-xl bg-white border border-[#D5C6B4] flex flex-col items-center shadow-xs">
+                <span className="text-xs font-mono text-stone-600 mb-2 font-medium">v{verA.version}.0 Canvas Snapshot</span>
+                <div className="w-56 h-56 bg-[#FAF7F0] rounded-xl border border-[#D5C6B4] overflow-hidden shadow-inner">
                   <canvas
                     ref={(canvas) => {
                       if (canvas) {
@@ -193,26 +191,28 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
                             width: canvas.width,
                             height: canvas.height,
                             styleMode: 'charcoal',
+                            viewAngle: 'frontal',
                             caseNumber,
                             version: verA.version,
+                            hasGenerated: true,
                           });
                         }
                       }
                     }}
-                    width={256}
-                    height={256}
+                    width={224}
+                    height={224}
                     className="w-full h-full block"
                   />
                 </div>
+                <p className="text-[11px] text-stone-600 mt-2 font-mono text-center truncate max-w-xs">
+                  {verA.triggeringCall}
+                </p>
               </div>
 
               {/* Version B View */}
-              <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col items-center">
-                <div className="w-full flex items-center justify-between mb-3 text-xs font-mono">
-                  <span className="text-purple-400 font-bold">Version {verB.version}.0 (Comparison)</span>
-                  <span className="text-slate-400 text-[11px]">{verB.timestamp}</span>
-                </div>
-                <div className="w-64 h-64 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
+              <div className="p-4 rounded-xl bg-white border border-[#D5C6B4] flex flex-col items-center shadow-xs">
+                <span className="text-xs font-mono text-stone-600 mb-2 font-medium">v{verB.version}.0 Canvas Snapshot</span>
+                <div className="w-56 h-56 bg-[#FAF7F0] rounded-xl border border-[#D5C6B4] overflow-hidden shadow-inner">
                   <canvas
                     ref={(canvas) => {
                       if (canvas) {
@@ -222,132 +222,110 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
                             width: canvas.width,
                             height: canvas.height,
                             styleMode: 'charcoal',
+                            viewAngle: 'frontal',
                             caseNumber,
                             version: verB.version,
+                            hasGenerated: true,
                           });
                         }
                       }
                     }}
-                    width={256}
-                    height={256}
+                    width={224}
+                    height={224}
                     className="w-full h-full block"
                   />
                 </div>
+                <p className="text-[11px] text-stone-600 mt-2 font-mono text-center truncate max-w-xs">
+                  {verB.triggeringCall}
+                </p>
               </div>
             </div>
 
-            {/* Morphological Differences Table */}
-            <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                <ArrowLeftRight className="h-4 w-4 text-cyan-400" />
-                Morphological Differences (v{verA.version} vs v{verB.version})
-              </h3>
-              {diffItems.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No morphological differences detected between these two versions.</p>
+            {/* Morphological Changes Diff Table */}
+            <div className="rounded-xl border border-[#D5C6B4] bg-white overflow-hidden shadow-2xs">
+              <div className="p-3 bg-[#F6F1EA] border-b border-[#E6DFD5] flex items-center justify-between text-xs font-mono">
+                <span className="font-semibold text-stone-900">Morphological Feature Delta (A → B)</span>
+                <span className="text-stone-600">{diffList.length} Changed Features</span>
+              </div>
+              {diffList.length === 0 ? (
+                <div className="p-6 text-center text-xs text-stone-500 italic">
+                  No morphological differences detected between Version {verA.version}.0 and Version {verB.version}.0.
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-400">
-                        <th className="py-2 px-3">Feature Region</th>
-                        <th className="py-2 px-3 text-cyan-400">Version {verA.version} State</th>
-                        <th className="py-2 px-3 text-purple-400">Version {verB.version} State</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60">
-                      {diffItems.map((d, i) => (
-                        <tr key={i} className="hover:bg-slate-800/30">
-                          <td className="py-2 px-3 font-semibold text-slate-300 font-sans">{d.feature}</td>
-                          <td className="py-2 px-3 text-cyan-300 capitalize">{d.valA}</td>
-                          <td className="py-2 px-3 text-purple-300 capitalize">{d.valB}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="divide-y divide-[#EFE7DC] text-xs font-mono">
+                  {diffList.map((d, i) => (
+                    <div key={i} className="p-2.5 flex items-center justify-between hover:bg-[#FAF8F5]">
+                      <span className="font-medium text-stone-800">{d.feature}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-stone-500 bg-[#F4EFE6] px-2 py-0.5 rounded border border-[#D5C6B4]">
+                          {d.valA || 'unknown'}
+                        </span>
+                        <ArrowLeftRight className="h-3 w-3 text-[#8C6D46]" />
+                        <span className="text-[#8C6D46] font-semibold bg-[#F2ECE1] px-2 py-0.5 rounded border border-[#D5C6B4]">
+                          {d.valB}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
         ) : (
-          /* Standard Chronological Version Timeline */
-          <div className="flex-1 p-5 overflow-y-auto bg-slate-950 space-y-3">
+          /* Chronological Timeline List View */
+          <div className="flex-1 p-5 overflow-y-auto bg-[#FDFBF7] space-y-3">
             {versions.map((ver, idx) => {
               const isCurrent = idx === currentVersionIndex;
+
               return (
                 <div
                   key={ver.id}
-                  className={`p-4 rounded-xl border transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                  className={`p-4 rounded-xl border transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs ${
                     isCurrent
-                      ? 'bg-cyan-950/20 border-cyan-500/70 shadow-md ring-1 ring-cyan-500/30'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[#F4EFE6] border-[#8C6D46] ring-1 ring-[#8C6D46]'
+                      : 'bg-white border-[#D5C6B4] hover:border-[#BFB09E]'
                   }`}
                 >
-                  {/* Left: Thumbnail & Version Meta */}
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-16 h-16 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden shrink-0">
-                      <canvas
-                        ref={(canvas) => {
-                          if (canvas) {
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                              drawForensicComposite(ctx, ver.faceSpec, {
-                                width: canvas.width,
-                                height: canvas.height,
-                                styleMode: 'charcoal',
-                                caseNumber,
-                                version: ver.version,
-                              });
-                            }
-                          }
-                        }}
-                        width={64}
-                        height={64}
-                        className="w-full h-full block"
-                      />
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold ${
+                      isCurrent
+                        ? 'bg-[#8C6D46] text-white'
+                        : 'bg-[#F2ECE1] text-[#6B4E2E] border border-[#D5C6B4]'
+                    }`}>
+                      v{ver.version}
                     </div>
-
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-white">
-                          v{ver.version}.0
-                        </span>
+                        <h4 className="font-semibold text-sm text-stone-900">{ver.triggeringCall}</h4>
                         {isCurrent && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300">
-                            Active Head
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Active Lead
                           </span>
                         )}
-                        <span className="text-xs text-slate-400">
-                          {ver.triggeringCall}
-                        </span>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-slate-500 font-mono">
+                      <p className="text-xs text-stone-600 mt-0.5">{ver.diffSummary}</p>
+                      <div className="flex items-center gap-3 text-[11px] font-mono text-stone-500 mt-2">
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" /> {ver.timestamp}
+                          <Calendar className="h-3 w-3 text-[#8C6D46]" /> {ver.timestamp}
                         </span>
                         <span>•</span>
-                        <span className="text-emerald-400">
-                          Locality: {ver.localityScore}% unchanged
-                        </span>
+                        <span className="text-emerald-700">Locality: {ver.localityScore.toFixed(1)}%</span>
                       </div>
-
-                      {ver.diffSummary && (
-                        <p className="text-xs text-slate-300 mt-1 font-sans">
-                          {ver.diffSummary}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  {/* Right: Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-center">
                     {!isCurrent && (
                       <button
-                        onClick={() => onRevertToVersion(ver.version)}
-                        className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                        onClick={() => {
+                          onRevertToVersion(ver.version);
+                          onClose();
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2ECE1] border border-[#D5C6B4] text-[#6B4E2E] text-xs font-mono font-medium flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                        title="Revert composite to this state and log evidentiary event"
                       >
-                        <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
-                        <span>Revert to this Version</span>
+                        <RotateCcw className="h-3 w-3 text-[#8C6D46]" />
+                        <span>Restore This Version</span>
                       </button>
                     )}
                   </div>
@@ -356,20 +334,6 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
             })}
           </div>
         )}
-
-        {/* Modal Footer */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
-            <span>Every timeline modification and revert is cryptographically hashed in the audit ledger.</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs transition cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );

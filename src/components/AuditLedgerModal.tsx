@@ -3,14 +3,15 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   X, 
-  Download, 
+  CheckCircle, 
+  AlertTriangle, 
   RefreshCw, 
-  Search, 
-  Filter, 
-  AlertTriangle,
-  Bug,
-  CheckCircle,
-  FileSpreadsheet
+  Download, 
+  Lock, 
+  Key, 
+  FileSpreadsheet,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { AuditEntry, AuditVerificationResult } from '../types';
 
@@ -33,40 +34,26 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
   onSimulateTamper,
   onRestoreChain,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterAction, setFilterAction] = useState<string>('ALL');
+  const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
 
   if (!isOpen) return null;
 
-  // Filter entries
-  const filteredEntries = entries.filter((entry) => {
-    const matchesSearch =
-      entry.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.entryHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (entry.details && JSON.stringify(entry.details).toLowerCase().includes(searchQuery.toLowerCase()));
+  const filtered = filterAction === 'ALL' 
+    ? entries 
+    : entries.filter(e => e.action === filterAction);
 
-    const matchesAction = filterAction === 'ALL' || entry.action === filterAction;
-    return matchesSearch && matchesAction;
-  });
-
-  // Export to CSV
   const handleExportCsv = () => {
-    const headers = [
-      'seq', 'timestamp_utc', 'user_id', 'role', 'case_id', 'action',
-      'resource', 'outcome', 'details', 'prev_hash', 'entry_hash'
-    ];
-    const rows = entries.map((e) => [
+    const headers = ['Seq', 'Timestamp', 'User', 'Role', 'Action', 'Resource', 'Outcome', 'PreviousHash', 'EntryHash'];
+    const rows = entries.map(e => [
       e.seq,
-      e.timestampUtc,
-      e.userId,
-      e.role,
-      e.caseId,
-      e.action,
-      e.resource,
-      e.outcome,
-      `"${JSON.stringify(e.details).replace(/"/g, '""')}"`,
-      e.prevHash,
+      `"${e.timestamp}"`,
+      `"${e.userId}"`,
+      `"${e.role}"`,
+      `"${e.action}"`,
+      `"${e.resource}"`,
+      `"${e.outcome}"`,
+      e.previousHash,
       e.entryHash
     ]);
 
@@ -84,26 +71,26 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
   const actions = Array.from(new Set(entries.map(e => e.action)));
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-2xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#FAF8F5] border border-[#D5C6B4] rounded-2xl shadow-2xl max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <div className="p-4 border-b border-[#E6DFD5] flex items-center justify-between bg-[#F6F1EA]">
           <div className="flex items-center gap-3">
             <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
               verificationResult?.isValid
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                ? 'bg-emerald-100 border border-emerald-300 text-emerald-800'
+                : 'bg-red-100 border border-red-300 text-red-800'
             }`}>
               {verificationResult?.isValid ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-base text-white">Cryptographic Audit Ledger (SHA-256)</h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                <h2 className="font-semibold text-base text-stone-900">Cryptographic Audit Ledger (SHA-256)</h2>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-[#6B4E2E] border border-[#D5C6B4]">
                   {entries.length} Blocks Chained
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-stone-600">
                 Append-only, mathematically linked tamper-evident evidentiary chain.
               </p>
             </div>
@@ -112,21 +99,21 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onRunVerification}
-              className="px-3 py-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-[#8C6D46] hover:bg-[#785C3A] text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Verify Chain</span>
             </button>
             <button
               onClick={handleExportCsv}
-              className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#EFE8DE] text-stone-800 border border-[#D5C6B4] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-700" />
               <span>Export CSV</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-[#EAE1D2] transition cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -136,14 +123,14 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
         {/* Verification Status Card */}
         <div className={`p-3.5 border-b text-xs flex flex-wrap items-center justify-between gap-3 ${
           verificationResult?.isValid
-            ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-200'
-            : 'bg-red-950/60 border-red-900/80 text-red-200'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : 'bg-red-50 border-red-200 text-red-900'
         }`}>
           <div className="flex items-center gap-2">
             {verificationResult?.isValid ? (
-              <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+              <CheckCircle className="h-4 w-4 text-emerald-700 shrink-0" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+              <AlertTriangle className="h-4 w-4 text-red-700 shrink-0" />
             )}
             <span className="font-mono">
               {verificationResult?.message || 'Ready for verification.'}
@@ -152,103 +139,82 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
 
           {/* Tamper Simulation Testing Tool */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400 text-[11px] font-sans">Tamper Simulation:</span>
+            <span className="text-stone-600 text-[11px] font-sans">Tamper Testing:</span>
             {verificationResult?.isValid ? (
               <button
                 onClick={() => onSimulateTamper(Math.min(2, entries.length))}
-                className="px-2 py-1 rounded bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-amber-200 text-[11px] font-mono flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-md bg-white hover:bg-[#FAF5EE] border border-[#D5C6B4] text-[#8C6D46] text-[11px] font-mono flex items-center gap-1 transition cursor-pointer shadow-2xs"
                 title="Simulate 1-bit tampering with block #2 to test verification engine"
               >
-                <Bug className="h-3 w-3" />
-                <span>Simulate Tamper on #2</span>
+                <span>Tamper Block #2</span>
               </button>
             ) : (
               <button
                 onClick={onRestoreChain}
-                className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-mono flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-mono flex items-center gap-1 transition cursor-pointer shadow-2xs"
               >
-                <span>Restore Chain</span>
+                <span>Restore Clean Chain</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="h-3.5 w-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search actions, hashes, resources, or details..."
-                className="w-full bg-slate-950 border border-slate-700 rounded-md pl-8 pr-3 py-1.5 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 text-xs"
-              />
-            </div>
-          </div>
-
+        {/* Filter bar */}
+        <div className="p-3 bg-[#F6F1EA] border-b border-[#E6DFD5] flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <Filter className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-stone-600 font-medium">Filter Action:</span>
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="bg-slate-950 border border-slate-700 text-slate-200 px-2.5 py-1.5 rounded text-xs focus:outline-none cursor-pointer"
+              className="bg-white border border-[#D5C6B4] text-stone-800 text-xs px-2.5 py-1 rounded-lg focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Actions ({entries.length})</option>
-              {actions.map((act) => (
-                <option key={act} value={act}>
-                  {act}
-                </option>
+              {actions.map(act => (
+                <option key={act} value={act}>{act}</option>
               ))}
             </select>
           </div>
+          <span className="text-stone-500 font-mono text-[11px]">
+            Showing {filtered.length} of {entries.length} chained entries
+          </span>
         </div>
 
         {/* Ledger Table */}
-        <div className="flex-1 overflow-auto bg-slate-950">
+        <div className="flex-1 overflow-auto bg-[#FDFBF7]">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-900/90 text-slate-400 sticky top-0 border-b border-slate-800">
+            <thead className="bg-[#F6F1EA] text-stone-600 border-b border-[#E6DFD5] sticky top-0 text-[11px]">
               <tr>
-                <th className="py-2.5 px-3">Seq</th>
-                <th className="py-2.5 px-3">Timestamp (UTC)</th>
-                <th className="py-2.5 px-3">User & Role</th>
-                <th className="py-2.5 px-3">Action</th>
-                <th className="py-2.5 px-3">Outcome</th>
-                <th className="py-2.5 px-3">Details</th>
-                <th className="py-2.5 px-3">SHA-256 Entry Hash</th>
+                <th className="p-2.5 font-semibold">Seq</th>
+                <th className="p-2.5 font-semibold">Timestamp</th>
+                <th className="p-2.5 font-semibold">Role / User</th>
+                <th className="p-2.5 font-semibold">Action</th>
+                <th className="p-2.5 font-semibold">Resource</th>
+                <th className="p-2.5 font-semibold">Hash (SHA-256)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredEntries.map((e) => (
-                <tr key={e.seq} className="hover:bg-slate-900/40 transition">
-                  <td className="py-2 px-3 font-bold text-cyan-400">#{e.seq}</td>
-                  <td className="py-2 px-3 text-slate-400 text-[11px] whitespace-nowrap">
-                    {e.timestampUtc.replace('T', ' ').slice(0, 19)}
+            <tbody className="divide-y divide-[#EFE7DC]">
+              {filtered.map((entry) => (
+                <tr 
+                  key={entry.seq}
+                  onClick={() => setSelectedEntry(entry)}
+                  className={`hover:bg-[#F5EFE6] cursor-pointer transition ${
+                    selectedEntry?.seq === entry.seq ? 'bg-[#F2ECE1]' : ''
+                  }`}
+                >
+                  <td className="p-2.5 text-stone-500 font-bold">#{entry.seq}</td>
+                  <td className="p-2.5 text-stone-600 whitespace-nowrap">{entry.timestamp}</td>
+                  <td className="p-2.5 whitespace-nowrap">
+                    <span className="font-semibold text-stone-900">{entry.role}</span>
+                    <span className="text-stone-500 text-[10px] block font-sans">{entry.userId}</span>
                   </td>
-                  <td className="py-2 px-3 whitespace-nowrap">
-                    <span className="text-slate-200 font-medium">{e.userId}</span>
-                    <span className="text-[10px] text-slate-500 block uppercase font-sans">{e.role}</span>
-                  </td>
-                  <td className="py-2 px-3">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                      {e.action}
+                  <td className="p-2.5 whitespace-nowrap">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-white border border-[#D5C6B4] text-[#6B4E2E] font-medium">
+                      {entry.action}
                     </span>
                   </td>
-                  <td className="py-2 px-3">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                      e.outcome === 'SUCCESS'
-                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                        : 'bg-red-950 text-red-400 border border-red-800'
-                    }`}>
-                      {e.outcome}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 max-w-xs truncate text-[11px] text-slate-400 font-sans" title={JSON.stringify(e.details)}>
-                    {JSON.stringify(e.details)}
-                  </td>
-                  <td className="py-2 px-3 text-[10px] font-mono text-cyan-400/90 whitespace-nowrap" title={`Prev: ${e.prevHash}\nEntry: ${e.entryHash}`}>
-                    {e.entryHash.slice(0, 14)}...{e.entryHash.slice(-8)}
+                  <td className="p-2.5 text-stone-600 truncate max-w-[150px]">{entry.resource}</td>
+                  <td className="p-2.5 text-[#8C6D46] font-mono text-[10px] truncate max-w-[180px]">
+                    {entry.entryHash.slice(0, 24)}...
                   </td>
                 </tr>
               ))}
@@ -256,18 +222,36 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
           </table>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <div>
-            Genesis Hash: <span className="font-mono text-slate-400">0000000000000000...0000</span>
+        {/* Selected Block Drawer Detail */}
+        {selectedEntry && (
+          <div className="p-4 bg-[#F6F1EA] border-t border-[#E6DFD5] text-xs font-mono">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-[#8C6D46]" /> Block #{selectedEntry.seq} Cryptographic Payload
+              </span>
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="text-stone-500 hover:text-stone-900 text-[11px]"
+              >
+                Close Details
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-[#D5C6B4] text-[11px]">
+              <div>
+                <div className="text-stone-500">Previous Hash (H_prev):</div>
+                <div className="text-[#8C6D46] break-all">{selectedEntry.previousHash}</div>
+                <div className="text-stone-500 mt-2">Entry Hash (H_entry = SHA256(H_prev || Payload)):</div>
+                <div className="text-emerald-700 font-bold break-all">{selectedEntry.entryHash}</div>
+              </div>
+              <div className="overflow-auto max-h-24">
+                <div className="text-stone-500 mb-1">Decoded Payload Details:</div>
+                <pre className="text-stone-700 text-[10px] bg-[#FAF8F5] p-2 rounded-lg border border-[#E6DFD5]">
+                  {JSON.stringify(selectedEntry.details, null, 2)}
+                </pre>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs transition cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

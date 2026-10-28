@@ -169,6 +169,7 @@ export default function App() {
   const [gridInitialFeature, setGridInitialFeature] = useState('nose');
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBriefModal, setShowBriefModal] = useState(false);
+  const [showFeatureDrawer, setShowFeatureDrawer] = useState(false);
 
   // Initialize genesis audit entry on mount
   useEffect(() => {
@@ -725,8 +726,32 @@ export default function App() {
     setShowGridModal(true);
   };
 
+  const statedAttributesCount = [
+    faceSpec.gender_presentation,
+    faceSpec.approximate_age,
+    faceSpec.face_shape,
+    faceSpec.skin_tone_complexion,
+    faceSpec.hair.style,
+    faceSpec.hair.color,
+    faceSpec.hair.length,
+    faceSpec.hair.hairline,
+    faceSpec.eyebrows,
+    faceSpec.eyes.shape,
+    faceSpec.eyes.color,
+    faceSpec.eyes.spacing,
+    faceSpec.nose.width,
+    faceSpec.nose.bridge,
+    faceSpec.nose.tip,
+    faceSpec.mouth_lips,
+    faceSpec.jawline_chin,
+    faceSpec.facial_hair,
+    faceSpec.distinguishing_marks?.type,
+    faceSpec.accessories,
+    faceSpec.expression,
+  ].filter(a => a && a.stated).length;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FDFBF7] text-stone-900 flex flex-col font-sans">
       {/* Top Navigation & Status Bar */}
       <Header
         currentRole={currentRole}
@@ -739,12 +764,15 @@ export default function App() {
         onOpenTimelineModal={() => setShowTimelineModal(true)}
         onOpenGridModal={() => setShowGridModal(true)}
         onOpenExportModal={() => setShowExportModal(true)}
+        onToggleFeatureDrawer={() => setShowFeatureDrawer(!showFeatureDrawer)}
+        isFeatureDrawerOpen={showFeatureDrawer}
+        statedCount={statedAttributesCount}
       />
 
-      {/* Main Studio 3-Column Grid */}
+      {/* Main Studio 2-Column Grid (with expandable side drawer) */}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
-        {/* Left Column: Cognitive Elicitation Dialogue (4 cols) */}
-        <div className="lg:col-span-4 h-[calc(100vh-61px)] overflow-hidden">
+        {/* Left Column: Cognitive Elicitation Dialogue (5 cols) */}
+        <div className="lg:col-span-5 h-[calc(100vh-57px)] overflow-hidden">
           <CognitiveInterview
             utterances={utterances}
             onSendMessage={handleSendMessage}
@@ -758,8 +786,8 @@ export default function App() {
           />
         </div>
 
-        {/* Center Column: Composite Canvas Viewport (5 cols) */}
-        <div className="lg:col-span-5 h-[calc(100vh-61px)] overflow-hidden">
+        {/* Right Column: Composite Canvas Viewport (7 cols) */}
+        <div className="lg:col-span-7 h-[calc(100vh-57px)] overflow-hidden">
           <CompositeCanvas
             faceSpec={faceSpec}
             version={activeVersion.version}
@@ -785,19 +813,30 @@ export default function App() {
             onOpenBriefModal={() => setShowBriefModal(true)}
           />
         </div>
-
-        {/* Right Column: FaceSpec Source of Truth Inspector (3 cols) */}
-        <div className="lg:col-span-3 h-[calc(100vh-61px)] overflow-hidden">
-          <FaceSpecInspector
-            faceSpec={faceSpec}
-            onToggleLock={handleToggleLock}
-            selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
-            currentRole={currentRole}
-            onAdminDirectEdit={handleAdminDirectEdit}
-          />
-        </div>
       </main>
+
+      {/* Expandable Slide-over Side Drawer for FaceSpec Features Inspector */}
+      {showFeatureDrawer && (
+        <div 
+          className="fixed inset-0 z-40 bg-stone-900/30 backdrop-blur-2xs transition-opacity duration-200"
+          onClick={() => setShowFeatureDrawer(false)}
+        />
+      )}
+      <aside
+        className={`fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[420px] max-w-[90vw] bg-[#FAF8F5] border-l border-[#D5C6B4] shadow-2xl transition-transform duration-300 ease-in-out transform ${
+          showFeatureDrawer ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <FaceSpecInspector
+          faceSpec={faceSpec}
+          onToggleLock={handleToggleLock}
+          selectedRegion={selectedRegion}
+          onSelectRegion={setSelectedRegion}
+          currentRole={currentRole}
+          onAdminDirectEdit={handleAdminDirectEdit}
+          onCloseDrawer={() => setShowFeatureDrawer(false)}
+        />
+      </aside>
 
       {/* Modals */}
       <RecognitionGridModal

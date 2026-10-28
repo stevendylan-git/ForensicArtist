@@ -23,6 +23,7 @@ interface FaceSpecInspectorProps {
   onSelectRegion: (region: string | null) => void;
   currentRole: UserRole;
   onAdminDirectEdit?: (fieldPath: string, newValue: string) => void;
+  onCloseDrawer?: () => void;
 }
 
 export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
@@ -32,6 +33,7 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
   onSelectRegion,
   currentRole,
   onAdminDirectEdit,
+  onCloseDrawer,
 }) => {
   const isAdmin = currentRole === 'ADMIN';
   const [editingPath, setEditingPath] = useState<string | null>(null);
@@ -100,42 +102,51 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
   const totalLocked = attributes.filter(a => a.attr.locked).length;
 
   return (
-    <section className="h-full flex flex-col bg-slate-900/40">
+    <section className="h-full flex flex-col bg-[#FAF8F5]">
       {/* Inspector Header */}
-      <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+      <div className="p-3.5 border-b border-[#E6DFD5] flex items-center justify-between bg-[#F6F1EA]">
         <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-cyan-400" />
-          <h2 className="font-semibold text-sm text-slate-100">FaceSpec Source of Truth</h2>
+          <FileText className="h-4 w-4 text-[#8C6D46]" />
+          <h2 className="font-semibold text-sm text-stone-900">FaceSpec Feature Inspector</h2>
         </div>
         <div className="flex items-center gap-2 text-[11px] font-mono">
-          <span className="text-cyan-400 bg-cyan-950/60 border border-cyan-800 px-2 py-0.5 rounded">
+          <span className="text-[#6B4E2E] bg-white border border-[#D5C6B4] px-2 py-0.5 rounded-md shadow-2xs">
             {totalStated}/21 Stated
           </span>
-          <span className="text-amber-400 bg-amber-950/40 border border-amber-800/60 px-2 py-0.5 rounded">
+          <span className="text-[#8C6D46] bg-[#EFE8DE] border border-[#D5C6B4] px-2 py-0.5 rounded-md">
             {totalLocked} Locked
           </span>
+          {onCloseDrawer && (
+            <button
+              onClick={onCloseDrawer}
+              className="p-1 rounded-md text-stone-500 hover:text-stone-900 hover:bg-[#EAE1D2] transition cursor-pointer ml-1"
+              title="Close drawer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Admin Mode Privilege Banner */}
       {isAdmin ? (
-        <div className="px-3.5 py-2.5 bg-purple-950/50 border-b border-purple-800/80 text-xs text-purple-200 flex items-center justify-between gap-2">
+        <div className="px-3.5 py-2.5 bg-[#F2EAE1] border-b border-[#D8CABE] text-xs text-stone-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sliders className="h-4 w-4 text-purple-400 shrink-0" />
+            <Sliders className="h-4 w-4 text-[#8C6D46] shrink-0" />
             <span className="leading-tight">
-              <strong className="text-white">Admin Privileges Active:</strong> Full direct edit override and unrestricted attribute locking enabled.
+              <strong className="text-[#6B4E2E]">Admin Mode Active:</strong> Direct edit override & unrestricted attribute locking enabled.
             </span>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-900/80 text-purple-200 uppercase font-semibold">
-            Superuser
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#8C6D46] text-white uppercase font-semibold">
+            Admin
           </span>
         </div>
       ) : (
         /* Evidentiary Notice Banner */
-        <div className="px-3.5 py-2 bg-slate-950/50 border-b border-slate-800/80 text-xs text-slate-400 flex items-start gap-2">
-          <Shield className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-          <span className="leading-relaxed">
-            <strong className="text-slate-300">Rule 3 Invariant:</strong> The structured JSON is the primary evidentiary record. Unstated attributes are strictly preserved as <code className="text-cyan-400 font-mono">unknown</code>.
+        <div className="px-3.5 py-2 bg-[#F6F1EA]/80 border-b border-[#E6DFD5] text-xs text-stone-600 flex items-start gap-2">
+          <Shield className="h-4 w-4 text-[#8C6D46] shrink-0 mt-0.5" />
+          <span className="leading-relaxed text-[11px]">
+            <strong className="text-stone-800">Rule 3 Invariant:</strong> The structured JSON is the primary evidentiary record. Unstated attributes remain <code className="text-[#8C6D46] font-mono">unknown</code>.
           </span>
         </div>
       )}
@@ -153,22 +164,22 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
             <div
               key={item.path}
               onClick={() => onSelectRegion(isSelected ? null : item.path.split('.')[0])}
-              className={`p-2.5 rounded-lg border text-xs transition cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-xs transition cursor-pointer shadow-2xs ${
                 isSelected
-                  ? 'bg-cyan-950/50 border-cyan-500 shadow-sm ring-1 ring-cyan-500/50'
+                  ? 'bg-[#F4EFE6] border-[#8C6D46] ring-1 ring-[#8C6D46]'
                   : isStated
-                  ? 'bg-slate-800/60 border-slate-700 hover:border-slate-600'
-                  : 'bg-slate-900/30 border-slate-800/80 opacity-75 hover:opacity-100'
+                  ? 'bg-white border-[#E2D8CC] hover:border-[#D0C2AF]'
+                  : 'bg-[#F7F4EE]/60 border-[#E8DFD3] opacity-80 hover:opacity-100'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                <span className="font-medium text-stone-800 flex items-center gap-1.5">
                   {item.path === 'facial_symmetry' ? (
-                    <Scale className="h-3 w-3 text-purple-400 shrink-0" />
+                    <Scale className="h-3.5 w-3.5 text-[#8C6D46] shrink-0" />
                   ) : isStated ? (
-                    <CheckCircle2 className="h-3 w-3 text-cyan-400 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#8C6D46] shrink-0" />
                   ) : (
-                    <HelpCircle className="h-3 w-3 text-slate-600 shrink-0" />
+                    <HelpCircle className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                   )}
                   {item.label}
                 </span>
@@ -186,10 +197,10 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
                           handleStartEdit(item.path, item.attr.value);
                         }
                       }}
-                      className={`p-1 rounded transition cursor-pointer ${
+                      className={`p-1 rounded-md transition cursor-pointer ${
                         isCurrentlyEditing
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-800 hover:bg-purple-900 text-slate-400 hover:text-purple-200'
+                          ? 'bg-[#8C6D46] text-white'
+                          : 'bg-[#EFE8DE] hover:bg-[#8C6D46] text-stone-600 hover:text-white'
                       }`}
                       title="Admin Direct Edit: Directly modify morphological value"
                     >
@@ -204,12 +215,12 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
                       e.stopPropagation();
                       onToggleLock(item.path);
                     }}
-                    className={`p-1 rounded transition cursor-pointer ${
+                    className={`p-1 rounded-md transition cursor-pointer ${
                       isLocked
-                        ? 'bg-amber-950 border border-amber-700 text-amber-300'
-                        : 'bg-slate-800 text-slate-500 hover:text-slate-300'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                        : 'text-stone-400 hover:text-stone-700 hover:bg-[#EFE8DE]'
                     }`}
-                    title={isLocked ? 'Locked against edits. Click to unlock.' : 'Click to lock region against subsequent modifications.'}
+                    title={isLocked ? 'Feature locked: Immune from cognitive interview edits' : 'Click to lock feature'}
                   >
                     {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
                   </button>
@@ -217,88 +228,89 @@ export const FaceSpecInspector: React.FC<FaceSpecInspectorProps> = ({
               </div>
 
               {/* Inline Admin Direct Modification Form */}
-              {isAdmin && isCurrentlyEditing ? (
-                <div 
-                  className="mt-2 pt-2 border-t border-purple-800/60 space-y-2 bg-purple-950/40 p-2 rounded"
+              {isCurrentlyEditing ? (
+                <div
+                  className="mt-2.5 p-2.5 rounded-lg bg-[#FAF6EE] border border-[#D5C6B4] space-y-2 animate-in fade-in"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#6B4E2E]">
+                      Admin Override: {item.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingPath(null)}
+                      className="text-stone-400 hover:text-stone-700 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  {/* Preset quick suggestions if available */}
+                  {presets && presets.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-stone-500 font-mono">Suggested values:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {presets.map((p, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setEditValue(p)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono transition cursor-pointer ${
+                              editValue === p
+                                ? 'bg-[#8C6D46] text-white font-semibold'
+                                : 'bg-white hover:bg-[#EFE8DE] text-stone-700 border border-[#D8CABE]'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      placeholder="Enter direct morphological value..."
-                      className="flex-1 bg-slate-950 border border-purple-500/80 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                      placeholder="Enter attribute value..."
+                      className="flex-1 bg-white border border-[#D8CABE] rounded px-2 py-1 text-xs text-stone-900 focus:outline-none focus:border-[#8C6D46]"
+                      autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveEdit(item.path);
                         if (e.key === 'Escape') setEditingPath(null);
                       }}
-                      autoFocus
                     />
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(item.path)}
-                      className="p-1 rounded bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer"
-                      title="Save direct change"
+                      className="px-2.5 py-1 bg-[#8C6D46] hover:bg-[#785C3A] text-white rounded text-xs font-medium flex items-center gap-1 transition cursor-pointer"
                     >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingPath(null)}
-                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                      title="Cancel"
-                    >
-                      <X className="h-3.5 w-3.5" />
+                      <Check className="h-3 w-3" />
+                      <span>Apply</span>
                     </button>
                   </div>
-
-                  {/* Presets suggestions */}
-                  {presets && presets.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {presets.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setEditValue(preset)}
-                          className="px-1.5 py-0.5 rounded bg-slate-900 hover:bg-purple-900 border border-purple-800/40 text-[10px] text-purple-200 transition cursor-pointer"
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ) : (
-                /* Value and Confidence */
-                <div className="mt-1.5 flex items-center justify-between">
-                  <span className={`font-mono text-xs ${isStated ? 'text-white font-medium capitalize' : 'text-slate-500 italic'}`}>
+                /* Standard Attribute Value Display */
+                <div className="mt-1.5 flex items-center justify-between text-xs">
+                  <span className={`font-mono ${isStated ? 'text-stone-900 font-medium' : 'text-stone-400 italic'}`}>
                     {item.attr.value}
                   </span>
-
                   {isStated && (
-                    <span className="text-[10px] font-mono text-cyan-400">
-                      {Math.round(item.attr.confidence * 100)}% conf
+                    <span className="text-[10px] font-mono text-[#8C6D46] bg-[#F2EAE1] px-1.5 py-0.2 rounded border border-[#D8CABE]">
+                      {Math.round((item.attr.confidence || 0.8) * 100)}% Conf
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Confidence Progress Bar */}
-              {isStated && !isCurrentlyEditing && (
-                <div className="mt-1 h-1 w-full bg-slate-950 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${item.path === 'facial_symmetry' ? 'bg-purple-500' : 'bg-cyan-500'}`}
-                    style={{ width: `${(item.attr.confidence || 0.9) * 100}%` }}
-                  />
-                </div>
-              )}
-
-              {/* Verbatim Witness Phrasing */}
-              {item.attr.verbatim && !isCurrentlyEditing && (
-                <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 flex items-start gap-1 text-[11px] text-slate-400 italic">
-                  <Quote className="h-2.5 w-2.5 text-cyan-400 shrink-0 mt-0.5" />
-                  <span>"{item.attr.verbatim}"</span>
+              {/* Verbatim quote snippet if recorded from witness utterance */}
+              {!isCurrentlyEditing && item.attr.verbatim && (
+                <div className="mt-1.5 pt-1.5 border-t border-[#EFE7DC] text-[10px] text-stone-500 italic flex items-center gap-1 font-sans">
+                  <Quote className="h-2.5 w-2.5 text-[#8C6D46] shrink-0" />
+                  <span className="truncate">"{item.attr.verbatim}"</span>
                 </div>
               )}
             </div>

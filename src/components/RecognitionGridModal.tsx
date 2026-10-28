@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Grid3X3, 
   X, 
   Check, 
-  RefreshCw, 
-  Sparkles,
+  Sparkles, 
+  HelpCircle, 
+  Sliders, 
+  Layers, 
+  ArrowRight,
   ZoomIn,
-  Maximize2,
-  Sliders,
-  CheckCircle2,
-  Info
+  Maximize2
 } from 'lucide-react';
 import { FaceSpec, CandidateVariation } from '../types';
 import { drawForensicComposite } from '../services/canvasRenderer';
@@ -25,13 +25,13 @@ interface RecognitionGridModalProps {
   initialFeature?: string;
 }
 
-// Subcomponent to reliably render each candidate preview card
+// Sub-component for individual candidate variation canvas card
 interface CandidateCardProps {
   cand: CandidateVariation;
-  previewSpec: FaceSpec;
+  faceSpec: FaceSpec;
+  selectedFeature: string;
   caseNumber: string;
   version: number;
-  selectedFeature: string;
   focusView: boolean;
   isFocused: boolean;
   onPick: (val: string) => void;
@@ -40,16 +40,23 @@ interface CandidateCardProps {
 
 const CandidateCard: React.FC<CandidateCardProps> = ({
   cand,
-  previewSpec,
+  faceSpec,
+  selectedFeature,
   caseNumber,
   version,
-  selectedFeature,
   focusView,
   isFocused,
   onPick,
   onBlend,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Derive preview FaceSpec specifically for this variation candidate
+  const previewSpec = applyCandidateVariationToFaceSpec(
+    faceSpec,
+    selectedFeature,
+    cand.variationValue
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -73,26 +80,26 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden bg-slate-900 transition flex flex-col ${
+      className={`rounded-xl border overflow-hidden bg-white transition flex flex-col shadow-2xs ${
         isFocused
-          ? 'border-purple-400 shadow-xl shadow-purple-950/60 ring-2 ring-purple-500'
-          : 'border-slate-800 hover:border-slate-600 shadow-md'
+          ? 'border-[#8C6D46] shadow-lg ring-2 ring-[#8C6D46]'
+          : 'border-[#D5C6B4] hover:border-[#BFB09E]'
       }`}
     >
       {/* Candidate Header */}
-      <div className="px-3.5 py-2 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between text-xs">
-        <span className="font-mono text-purple-300 font-semibold flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse"></span>
+      <div className="px-3 py-1.5 bg-[#F6F1EA] border-b border-[#E6DFD5] flex items-center justify-between text-xs">
+        <span className="font-mono text-[#8C6D46] font-semibold flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-[#8C6D46] animate-pulse"></span>
           Candidate #{cand.candidateIndex}
         </span>
-        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-900">
+        <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
           Locality: 98.4%
         </span>
       </div>
 
       {/* Candidate Visual Preview Canvas */}
-      <div className="p-3 bg-slate-950/70 flex items-center justify-center relative">
-        <div className="w-48 h-48 sm:w-52 sm:h-52 bg-stone-900/90 rounded-lg border border-slate-700/80 overflow-hidden relative shadow-inner group">
+      <div className="p-3 bg-[#FAF7F0] flex items-center justify-center relative">
+        <div className="w-48 h-48 sm:w-52 sm:h-52 bg-[#FAF7F0] rounded-xl border border-[#D5C6B4] overflow-hidden relative shadow-inner group">
           <canvas
             ref={canvasRef}
             width={220}
@@ -100,39 +107,43 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
             className="w-full h-full block"
           />
 
-          {/* Feature targeting overlay bracket */}
-          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-slate-950/80 border border-purple-500/40 text-[9px] font-mono text-purple-300">
-            {focusView ? 'ZOOM: CLOSE-UP' : 'FULL FACE'}
+          {/* Quick Hover Overlay */}
+          <div className="absolute inset-0 bg-[#3E3226]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3 backdrop-blur-2xs">
+            <button
+              onClick={() => onPick(cand.variationValue)}
+              className="px-3 py-2 rounded-lg bg-[#8C6D46] hover:bg-[#785C3A] text-white text-xs font-semibold shadow-md flex items-center gap-1 cursor-pointer transition"
+            >
+              <Check className="h-3.5 w-3.5" />
+              <span>Select This</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Candidate Feature Description */}
-      <div className="px-3.5 py-2.5 flex-1 flex flex-col justify-between bg-slate-900/90 border-t border-slate-800/80">
+      {/* Feature Value & Action Bar */}
+      <div className="p-3 bg-[#FAF8F5] border-t border-[#E6DFD5] flex-1 flex flex-col justify-between space-y-2">
         <div>
-          <p className="text-xs font-semibold text-white capitalize leading-tight mb-1">
-            {cand.variationValue}
-          </p>
-          <p className="text-[11px] text-slate-400 font-sans leading-snug">
-            Morphological variation with all other facial features strictly anchored.
+          <span className="text-[10px] font-mono text-stone-500 uppercase block">Morphological Value</span>
+          <p className="text-xs font-semibold text-stone-900 mt-0.5 leading-snug">
+            "{cand.variationValue}"
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#EFE7DC]">
           <button
-            onClick={() => onPick(cand.variationValue)}
-            className="flex-1 py-1.5 px-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-purple-950/50 transition cursor-pointer"
+            type="button"
+            onClick={() => onBlend(cand.candidateIndex)}
+            className="px-2 py-1.5 rounded-lg bg-white hover:bg-[#F2ECE1] border border-[#D5C6B4] text-[#6B4E2E] text-[11px] font-medium transition cursor-pointer text-center"
+            title="Generate subtler variations centered around this candidate"
           >
-            <Check className="h-3.5 w-3.5" />
-            <span>Select Candidate</span>
+            Blend Toward
           </button>
           <button
-            onClick={() => onBlend(cand.candidateIndex)}
-            className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 transition cursor-pointer"
-            title="Narrow candidate variations around this morphological profile"
+            type="button"
+            onClick={() => onPick(cand.variationValue)}
+            className="px-2 py-1.5 rounded-lg bg-[#8C6D46] hover:bg-[#785C3A] text-white text-[11px] font-medium transition cursor-pointer text-center shadow-2xs"
           >
-            Blend
+            Pick Feature
           </button>
         </div>
       </div>
@@ -149,44 +160,43 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
   onSelectCandidate,
   initialFeature = 'nose',
 }) => {
-  const [selectedFeature, setSelectedFeature] = useState(initialFeature);
-  const [spread, setSpread] = useState<'standard' | 'wide' | 'narrow'>('standard');
+  const [selectedFeature, setSelectedFeature] = useState<string>(initialFeature);
+  const [spread, setSpread] = useState<'narrow' | 'medium' | 'wide'>('medium');
   const [focusedCandidate, setFocusedCandidate] = useState<number | null>(null);
-  const [focusView, setFocusView] = useState<boolean>(true); // Default to feature close-up
+  const [focusView, setFocusView] = useState<boolean>(true);
 
   useEffect(() => {
     if (initialFeature) {
       setSelectedFeature(initialFeature);
-      setFocusedCandidate(null);
     }
   }, [initialFeature]);
 
   if (!isOpen) return null;
 
-  // Feature variation catalogs
+  // Curated variation libraries per region
   const featureCatalogs: Record<string, { label: string; variations: string[] }> = {
     nose: {
-      label: 'Nose Morphology',
+      label: 'Nose (Bridge & Tip)',
       variations: [
-        'narrow straight bridge', 'wide flared nostrils', 'prominent high bridge',
-        'subtle button tip', 'slight aquiline hook', 'broad flat bridge',
-        'upturned pointed tip', 'average classic contour', 'chiseled defined bridge'
-      ]
-    },
-    eyes: {
-      label: 'Eye Morphology & Spacing',
-      variations: [
-        'deep-set dark brown', 'almond shaped hazel', 'narrow hooded eyes',
-        'wide-set dark brown', 'close-set piercing', 'large round dark',
-        'slight downturned slant', 'intense focused gaze', 'soft rounded lids'
+        'narrow straight defined', 'prominent high bridge hook', 'broad flat bridge flared',
+        'subtle button upturned', 'aquiline curved ridge', 'wide rounded bulbous',
+        'slight crooked deviation', 'concave delicate bridge', 'strong masculine dorsal'
       ]
     },
     eyebrows: {
-      label: 'Eyebrows',
+      label: 'Eyebrows (Arch & Density)',
       variations: [
         'thick bushy dark', 'sharp high arched', 'straight horizontal heavy',
-        'sparse light trimmed', 'angular pointed peak', 'monobrow prominent',
-        'natural soft arch', 'faint narrow line', 'heavy low-set brows'
+        'sparse light trimmed', 'monobrow prominent', 'subtle curved natural',
+        'downturned tapered', 'thick soft rounded', 'angled sharp brows'
+      ]
+    },
+    eyes: {
+      label: 'Eyes (Shape & Socket)',
+      variations: [
+        'deep-set almond dark', 'narrow hooded eyes', 'large round wide-set',
+        'downturned tired eyes', 'close-set piercing eyes', 'upturned cat-like almond',
+        'heavy upper eyelid crease', 'prominent orbital bone', 'subtle monolid dark'
       ]
     },
     hair: {
@@ -294,40 +304,40 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-2xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#FAF8F5] border border-[#D5C6B4] rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <div className="p-4 border-b border-[#E6DFD5] flex items-center justify-between bg-[#F6F1EA]">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="h-8 w-8 rounded-lg bg-[#EFE8DE] border border-[#D8CABE] flex items-center justify-center text-[#8C6D46]">
               <Grid3X3 className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="font-semibold text-base text-white">3×3 Eyewitness Recognition Grid</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="font-semibold text-base text-stone-900">3×3 Eyewitness Recognition Grid</h2>
+              <p className="text-xs text-stone-600">
                 Cognitive variation grid varying <strong>ONLY</strong> the selected feature while keeping all other regions locked.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-[#EAE1D2] transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Controls Toolbar */}
-        <div className="p-3.5 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="p-3.5 border-b border-[#E6DFD5] bg-[#F6F1EA]/80 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center flex-wrap gap-2.5">
-            <span className="text-slate-400 font-mono">Vary Feature:</span>
+            <span className="text-stone-700 font-medium">Vary Feature:</span>
             <select
               value={selectedFeature}
               onChange={(e) => {
                 setSelectedFeature(e.target.value);
                 setFocusedCandidate(null);
               }}
-              className="bg-slate-950 border border-slate-700 text-purple-300 font-medium px-2.5 py-1.5 rounded focus:outline-none cursor-pointer"
+              className="bg-white border border-[#D5C6B4] text-stone-900 font-medium px-3 py-1.5 rounded-lg focus:outline-none cursor-pointer shadow-2xs"
             >
               {Object.entries(featureCatalogs).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -337,11 +347,11 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
             </select>
 
             {/* View Mode Toggle: Close-Up vs Full Face */}
-            <div className="flex items-center bg-slate-950 rounded border border-slate-800 p-0.5 ml-2">
+            <div className="flex items-center bg-white rounded-lg border border-[#D5C6B4] p-0.5 ml-2 shadow-2xs">
               <button
                 onClick={() => setFocusView(true)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition cursor-pointer ${
-                  focusView ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 transition cursor-pointer ${
+                  focusView ? 'bg-[#8C6D46] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-900'
                 }`}
                 title="Zoom directly into the target facial feature"
               >
@@ -350,8 +360,8 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
               </button>
               <button
                 onClick={() => setFocusView(false)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition cursor-pointer ${
-                  !focusView ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 transition cursor-pointer ${
+                  !focusView ? 'bg-[#8C6D46] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-900'
                 }`}
                 title="View candidate variation in full facial composite context"
               >
@@ -363,28 +373,28 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
 
           {/* Spread Controls & None of These */}
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-mono">Spread:</span>
-            <div className="flex items-center bg-slate-950 rounded border border-slate-800 p-0.5">
+            <span className="text-stone-700 font-medium">Spread:</span>
+            <div className="flex items-center bg-white rounded-lg border border-[#D5C6B4] p-0.5 shadow-2xs">
               <button
                 onClick={() => setSpread('narrow')}
-                className={`px-2 py-0.5 rounded text-[11px] transition cursor-pointer ${
-                  spread === 'narrow' ? 'bg-purple-600 text-white' : 'text-slate-400'
+                className={`px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                  spread === 'narrow' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 Narrow
               </button>
               <button
-                onClick={() => setSpread('standard')}
-                className={`px-2 py-0.5 rounded text-[11px] transition cursor-pointer ${
-                  spread === 'standard' ? 'bg-purple-600 text-white' : 'text-slate-400'
+                onClick={() => setSpread('medium')}
+                className={`px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                  spread === 'medium' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Standard
+                Medium
               </button>
               <button
                 onClick={() => setSpread('wide')}
-                className={`px-2 py-0.5 rounded text-[11px] transition cursor-pointer ${
-                  spread === 'wide' ? 'bg-purple-600 text-white' : 'text-slate-400'
+                className={`px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer ${
+                  spread === 'wide' ? 'bg-[#8C6D46] text-white font-medium' : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 Wide
@@ -393,63 +403,53 @@ export const RecognitionGridModal: React.FC<RecognitionGridModalProps> = ({
 
             <button
               onClick={handleNoneOfThese}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 flex items-center gap-1 transition cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2ECE1] border border-[#D5C6B4] text-[#6B4E2E] text-xs font-medium transition cursor-pointer shadow-2xs"
             >
-              <RefreshCw className="h-3 w-3" />
-              <span>None of These</span>
+              None of These
             </button>
           </div>
         </div>
 
-        {/* Current Baseline Reference Banner */}
-        <div className="px-4 py-2 bg-purple-950/30 border-b border-purple-900/40 flex items-center justify-between text-xs text-purple-200">
+        {/* Informational Sub-header */}
+        <div className="px-5 py-2 bg-[#F2ECE1] border-b border-[#E6DFD5] flex items-center justify-between text-xs text-stone-700 font-mono">
           <div className="flex items-center gap-2">
-            <Info className="h-3.5 w-3.5 text-purple-400 flex-shrink-0" />
-            <span>
-              <strong>Current Baseline:</strong>{' '}
-              <span className="font-mono text-purple-300 capitalize">"{getBaselineText()}"</span>
-            </span>
+            <span className="text-stone-500 font-sans">Current Baseline:</span>
+            <span className="text-stone-900 font-semibold">{getBaselineText()}</span>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-            Each candidate below previews how the composite will look with that specific variant applied.
+          <div className="flex items-center gap-2 text-emerald-800">
+            <Sparkles className="h-3 w-3 text-emerald-600" />
+            <span>Evidentiary Invariant: All other facial features locked</span>
+          </div>
+        </div>
+
+        {/* 3x3 Grid Matrix Body */}
+        <div className="flex-1 p-5 overflow-y-auto bg-[#FDFBF7]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {candidates.map((cand) => (
+              <CandidateCard
+                key={cand.candidateIndex}
+                cand={cand}
+                faceSpec={faceSpec}
+                selectedFeature={selectedFeature}
+                caseNumber={caseNumber}
+                version={version}
+                focusView={focusView}
+                isFocused={focusedCandidate === cand.candidateIndex}
+                onPick={handlePickCandidate}
+                onBlend={handleBlendToward}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-3.5 bg-[#F6F1EA] border-t border-[#E6DFD5] flex items-center justify-between text-xs font-mono">
+          <span className="text-stone-600">
+            Click 'Pick Feature' on any candidate to update the composite version and log to the audit ledger.
           </span>
-        </div>
-
-        {/* 3x3 Grid of Candidates */}
-        <div className="flex-1 p-5 overflow-y-auto bg-slate-950">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {candidates.map((cand) => {
-              const isFocused = focusedCandidate === cand.candidateIndex;
-              // Build a modified FaceSpec for preview using deep attribute update
-              const previewSpec = applyCandidateVariationToFaceSpec(faceSpec, selectedFeature, cand.variationValue);
-
-              return (
-                <CandidateCard
-                  key={cand.candidateIndex}
-                  cand={cand}
-                  previewSpec={previewSpec}
-                  caseNumber={caseNumber}
-                  version={version}
-                  selectedFeature={selectedFeature}
-                  focusView={focusView}
-                  isFocused={isFocused}
-                  onPick={handlePickCandidate}
-                  onBlend={handleBlendToward}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Modal Footer / Legal Notice */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-1.5 font-mono text-[11px]">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Rule 2 & 4 Verified: Strictly locked feature locality preservation</span>
-          </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition cursor-pointer"
+            className="px-4 py-1.5 rounded-lg bg-white border border-[#D5C6B4] text-stone-800 hover:bg-[#EFE8DE] transition cursor-pointer shadow-2xs"
           >
             Cancel
           </button>

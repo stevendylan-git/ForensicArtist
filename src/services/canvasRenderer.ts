@@ -106,16 +106,16 @@ export function drawForensicComposite(
 
     // 1. Mandatory Statutory Top Watermark Banner
     ctx.save();
-    ctx.fillStyle = 'rgba(69, 10, 10, 0.95)';
+    ctx.fillStyle = 'rgba(140, 109, 70, 0.95)';
     ctx.fillRect(0, 0, width, 26);
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+    ctx.strokeStyle = 'rgba(180, 140, 95, 0.8)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, 26);
     ctx.lineTo(width, 26);
     ctx.stroke();
 
-    ctx.fillStyle = '#fecaca';
+    ctx.fillStyle = '#fdfbf7';
     ctx.font = '600 10px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -124,16 +124,16 @@ export function drawForensicComposite(
 
     // 2. Mandatory Statutory Bottom Watermark Banner
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.fillStyle = 'rgba(56, 44, 34, 0.92)';
     ctx.fillRect(0, height - 32, width, 32);
-    ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)';
+    ctx.strokeStyle = 'rgba(92, 75, 60, 0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height - 32);
     ctx.lineTo(width, height - 32);
     ctx.stroke();
 
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#e6ded3';
     ctx.font = '500 9px "JetBrains Mono", monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -400,27 +400,24 @@ export function drawForensicComposite(
  */
 function drawForensicPaper(ctx: CanvasRenderingContext2D, width: number, height: number, isPhotoreal: boolean) {
   ctx.save();
+  const bg = ctx.createRadialGradient(width * 0.5, height * 0.46, 40, width * 0.5, height * 0.5, width * 0.9);
   if (isPhotoreal) {
-    const bg = ctx.createRadialGradient(width * 0.5, height * 0.46, 30, width * 0.5, height * 0.5, width * 0.85);
-    bg.addColorStop(0, '#1c2438');
-    bg.addColorStop(0.5, '#0f172a');
-    bg.addColorStop(1, '#060a12');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, width, height);
+    bg.addColorStop(0, '#fdfbf7');
+    bg.addColorStop(0.65, '#f4ece0');
+    bg.addColorStop(1, '#e7dec9');
   } else {
-    const bg = ctx.createRadialGradient(width * 0.5, height * 0.46, 40, width * 0.5, height * 0.5, width * 0.9);
     bg.addColorStop(0, '#faf7f0');
     bg.addColorStop(0.65, '#f3ede0');
     bg.addColorStop(1, '#e7dec9');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = 'rgba(60, 50, 40, 0.025)';
-    for (let i = 0; i < 400; i++) {
-      const rx = (Math.sin(i * 997) * 0.5 + 0.5) * width;
-      const ry = (Math.cos(i * 883) * 0.5 + 0.5) * height;
-      ctx.fillRect(rx, ry, 1.5, 1.5);
-    }
+  ctx.fillStyle = 'rgba(60, 50, 40, 0.025)';
+  for (let i = 0; i < 400; i++) {
+    const rx = (Math.sin(i * 997) * 0.5 + 0.5) * width;
+    const ry = (Math.cos(i * 883) * 0.5 + 0.5) * height;
+    ctx.fillRect(rx, ry, 1.5, 1.5);
   }
   ctx.restore();
 }
@@ -443,17 +440,17 @@ function drawForensicSketch(
   ctx.translate(cx, cy);
   ctx.scale(scale, scale);
 
-  // Palette definition based on styleMode
+  // Palette definition based on styleMode - Warm Light Theme
   const p = isPhotoreal ? {
-    dark: '#020617',
-    deep: '#0f172a',
-    mid: '#334155',
-    light: '#64748b',
-    skinGradStart: '#e2e8f0',
-    skinGradEnd: '#94a3b8',
-    highlight: 'rgba(255, 255, 255, 0.7)',
-    pencilStroke: 'rgba(15, 23, 42, 0.85)',
-    shading: 'rgba(15, 23, 42, 0.22)',
+    dark: '#1c1917',
+    deep: '#292524',
+    mid: '#44403c',
+    light: '#78716c',
+    skinGradStart: '#faf7f0',
+    skinGradEnd: '#decbb8',
+    highlight: 'rgba(255, 255, 255, 0.75)',
+    pencilStroke: 'rgba(38, 30, 24, 0.9)',
+    shading: 'rgba(48, 38, 30, 0.22)',
   } : {
     dark: '#1c1917',
     deep: '#292524',
