@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { createServer as createViteServer } from 'vite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +13,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Initialize server-side Gemini client
 const apiKey = process.env.GEMINI_API_KEY;
@@ -297,11 +298,165 @@ app.post('/api/composite/generate', async (req: Request, res: Response) => {
   }
 });
 
+// Plastic surgery / fugitive appearance alteration endpoint using Gemini
+app.post('/api/composite/generate-alteration', async (req: Request, res: Response) => {
+  try {
+    const { baseImageBase64, procedureId, procedureName, promptModifier, styleMode } = req.body;
+    const isPhotoreal = styleMode !== 'charcoal';
+
+    const alterationPrompt = isPhotoreal
+      ? `Frontal eye-level forensic mugshot photograph of an adult individual who has undergone facial plastic surgery (${procedureName}): ${promptModifier}. Neutral expression, neutral grey police identification background, 35mm lens, raw uncompressed photograph, fine natural skin pores, realistic cosmetic post-operative appearance. Evidentiary criminal file portrait. No cartoon, no anime, real human face photograph.`
+      : `Forensic police facial composite sketch, charcoal and graphite drawing on textured paper, showing individual after facial cosmetic surgery (${procedureName}): ${promptModifier}. Crime lab sketch.`;
+
+    if (aiClient) {
+      try {
+        let contents: any;
+        if (baseImageBase64 && typeof baseImageBase64 === 'string' && baseImageBase64.includes('base64,')) {
+          const rawBase64 = baseImageBase64.split('base64,')[1];
+          contents = {
+            parts: [
+              {
+                inlineData: {
+                  data: rawBase64,
+                  mimeType: 'image/png',
+                },
+              },
+              { text: alterationPrompt },
+            ],
+          };
+        } else {
+          contents = {
+            parts: [{ text: alterationPrompt }],
+          };
+        }
+
+        const imageGenRes = await aiClient.models.generateContent({
+          model: 'gemini-3.1-flash-lite-image',
+          contents,
+        });
+
+        const parts = imageGenRes.candidates?.[0]?.content?.parts || [];
+        for (const p of parts) {
+          if (p.inlineData && p.inlineData.data) {
+            const dataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+            return res.json({
+              imageUrl: dataUrl,
+              status: 'success',
+              procedureId,
+              modelUsed: 'gemini-3.1-flash-lite-image',
+              prompt: alterationPrompt,
+            });
+          }
+        }
+      } catch (geminiImgError: any) {
+        console.warn('[Gemini Alteration Image Gen Warning]', geminiImgError?.message || geminiImgError);
+      }
+    }
+
+    return res.json({
+      imageUrl: null,
+      status: 'procedural_morph',
+      procedureId,
+      modelUsed: 'Forensic Morphological Transformation Engine',
+      prompt: alterationPrompt,
+    });
+  } catch (err: any) {
+    console.error('Server error in /api/composite/generate-alteration:', err);
+    res.status(500).json({ error: 'Failed to generate surgical alteration' });
+  }
+});
+
+// Eyewitness voice audio transcription endpoint using Gemini
+app.post('/api/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { audioBase64, mimeType } = req.body;
+    if (!audioBase64 || typeof audioBase64 !== 'string') {
+      return res.status(400).json({ error: 'audioBase64 string is required.', success: false });
+    }
+
+    const cleanBase64 = audioBase64.includes('base64,')
+      ? audioBase64.split('base64,')[1]
+      : audioBase64;
+    const mediaType = mimeType || 'audio/webm';
+
+    if (aiClient) {
+      try {
+        let transcriptionText = '';
+        try {
+          const resp = await aiClient.models.generateContent({
+            model: 'gemini-3.5-transcribe',
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: mediaType,
+                      data: cleanBase64,
+                    },
+                  },
+                  {
+                    text: 'Transcribe this eyewitness spoken description verbatim. Return ONLY the transcribed words with proper punctuation. Do not add any preamble, conversational greeting, explanation, or quotes.',
+                  },
+                ],
+              },
+            ],
+          });
+          transcriptionText = resp.text?.trim() || '';
+        } catch (mErr) {
+          console.warn('[Gemini 3.5 Transcribe fallback to 3.8-flash]', mErr);
+          const resp2 = await aiClient.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: mediaType,
+                      data: cleanBase64,
+                    },
+                  },
+                  {
+                    text: 'Transcribe this eyewitness spoken description verbatim. Return ONLY the transcribed words with proper punctuation. Do not add any preamble, conversational greeting, explanation, or quotes.',
+                  },
+                ],
+              },
+            ],
+          });
+          transcriptionText = resp2.text?.trim() || '';
+        }
+
+        return res.json({
+          transcript: transcriptionText,
+          success: true,
+          modelUsed: 'gemini',
+        });
+      } catch (geminiError: any) {
+        console.warn('[Gemini Transcribe Server Error]', geminiError?.message || geminiError);
+        return res.status(500).json({
+          error: geminiError?.message || 'Transcription failed',
+          success: false,
+        });
+      }
+    } else {
+      return res.status(503).json({
+        error: 'Gemini server client is not initialized (missing GEMINI_API_KEY).',
+        success: false,
+      });
+    }
+  } catch (err: any) {
+    console.error('Server error in /api/transcribe:', err);
+    res.status(500).json({ error: 'Internal server error processing audio transcription.', success: false });
+  }
+});
+
 // Mount Vite or serve static production build
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
   if (!isProd) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -310,7 +465,7 @@ async function startServer() {
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
+    app.use((_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }

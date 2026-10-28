@@ -12,6 +12,7 @@ AI-assisted eyewitness composite generation system adhering to forensic evidenti
 - **Non-Destructive Version Timeline**: Complete version history with undo/redo, side-by-side comparative inspection, and morphological diff analysis.
 - **Tamper-Evident SHA-256 Audit Ledger**: Append-only cryptographic hash chain linking every action, turn, version creation, rejection, and export back to the genesis block (`0x00`). Includes a live verification tool and tamper simulation mode.
 - **RBAC & Need-to-Know Access Isolation**: Multi-role support (Investigator, Forensic Artist, Supervisor, Admin, and Auditor). Compliance Auditor role enforces biometric face image isolation while providing unrestricted audit inspection.
+- **Fugitive Plastic Surgery & Alteration Matrix**: Comprehensive facial alteration forecast simulating the 8 most popular cosmetic surgical procedures fugitives undergo to evade facial recognition algorithms and eyewitness recognition (Rhinoplasty, Blepharoplasty, Buccal Fat Excision & Malar Implants, V-Line Mandibuloplasty, Genioplasty, Rhytidectomy Facelift, Cheiloplasty, and Full Disguise Overhaul). Features biometric disruption scores, interactive draggable Before/After split sliders, surgical incision guides, nodal calipers, and 1-click Law Enforcement Bulletin export.
 - **Court-Admissible Export Docket**: High-resolution PNG and printable dossier export with burned-in statutory watermarks and embedded metadata chunks.
 
 ## Running Locally

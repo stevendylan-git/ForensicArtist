@@ -34,6 +34,7 @@ import { AuditLedgerModal } from './components/AuditLedgerModal';
 import { ExportModal } from './components/ExportModal';
 import { CaseManagerModal } from './components/CaseManagerModal';
 import { ForensicArtistBriefModal } from './components/ForensicArtistBriefModal';
+import { SurgicalAlterationsTab } from './components/SurgicalAlterationsTab';
 
 export default function App() {
   // Demo Users / Role
@@ -106,6 +107,7 @@ export default function App() {
   const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [styleMode, setStyleMode] = useState<'charcoal' | 'photoreal'>('photoreal');
+  const [activeTab, setActiveTab] = useState<'studio' | 'surgical'>('studio');
 
   // Helper to compile stated vs unstated feature names for context-awareness
   const getFaceSpecContext = (spec: FaceSpec) => {
@@ -767,53 +769,82 @@ export default function App() {
         onToggleFeatureDrawer={() => setShowFeatureDrawer(!showFeatureDrawer)}
         isFeatureDrawerOpen={showFeatureDrawer}
         statedCount={statedAttributesCount}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
-      {/* Main Studio 2-Column Grid (with expandable side drawer) */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
-        {/* Left Column: Cognitive Elicitation Dialogue (5 cols) */}
-        <div className="lg:col-span-5 h-[calc(100vh-57px)] overflow-hidden">
-          <CognitiveInterview
-            utterances={utterances}
-            onSendMessage={handleSendMessage}
-            isProcessing={isProcessing}
-            adversarialError={adversarialError}
-            onClearAdversarialError={() => setAdversarialError(null)}
-            selectedModel={selectedModel}
-            onSelectModel={setSelectedModel}
-            activeCase={activeCase}
-            faceSpec={faceSpec}
-          />
-        </div>
+      {/* Main Studio View OR Surgical Alterations Tab */}
+      {activeTab === 'studio' ? (
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
+          {/* Left Column: Cognitive Elicitation Dialogue (5 cols) */}
+          <div className="lg:col-span-5 h-[calc(100vh-57px)] overflow-hidden">
+            <CognitiveInterview
+              utterances={utterances}
+              onSendMessage={handleSendMessage}
+              isProcessing={isProcessing}
+              adversarialError={adversarialError}
+              onClearAdversarialError={() => setAdversarialError(null)}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+              activeCase={activeCase}
+              faceSpec={faceSpec}
+            />
+          </div>
 
-        {/* Right Column: Composite Canvas Viewport (7 cols) */}
-        <div className="lg:col-span-7 h-[calc(100vh-57px)] overflow-hidden">
-          <CompositeCanvas
-            faceSpec={faceSpec}
-            version={activeVersion.version}
-            caseNumber={activeCase.caseNumber}
-            currentRole={currentRole}
-            selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
-            entryHash={auditEntries.length > 0 ? auditEntries[auditEntries.length - 1].entryHash : undefined}
-            onOpenGridForRegion={handleOpenGridForRegion}
-            hasGenerated={hasGenerated}
-            aiImageUrl={aiImageUrl}
-            isGeneratingImage={isGeneratingImage}
-            onGenerateComposite={(mode) => handleGenerateComposite(mode)}
-            styleMode={styleMode}
-            onStyleModeChange={(mode) => {
-              setStyleMode(mode);
-              if (hasGenerated) {
-                handleGenerateComposite(mode);
-              }
-            }}
-            onResetCanvas={handleResetCanvas}
-            onAskQuestion={handleSendMessage}
-            onOpenBriefModal={() => setShowBriefModal(true)}
-          />
-        </div>
-      </main>
+          {/* Right Column: Composite Canvas Viewport (7 cols) */}
+          <div className="lg:col-span-7 h-[calc(100vh-57px)] overflow-hidden">
+            <CompositeCanvas
+              faceSpec={faceSpec}
+              version={activeVersion.version}
+              caseNumber={activeCase.caseNumber}
+              currentRole={currentRole}
+              selectedRegion={selectedRegion}
+              onSelectRegion={setSelectedRegion}
+              entryHash={auditEntries.length > 0 ? auditEntries[auditEntries.length - 1].entryHash : undefined}
+              onOpenGridForRegion={handleOpenGridForRegion}
+              hasGenerated={hasGenerated}
+              aiImageUrl={aiImageUrl}
+              isGeneratingImage={isGeneratingImage}
+              onGenerateComposite={(mode) => handleGenerateComposite(mode)}
+              styleMode={styleMode}
+              onStyleModeChange={(mode) => {
+                setStyleMode(mode);
+                if (hasGenerated) {
+                  handleGenerateComposite(mode);
+                }
+              }}
+              onResetCanvas={handleResetCanvas}
+              onAskQuestion={handleSendMessage}
+              onOpenBriefModal={() => setShowBriefModal(true)}
+            />
+          </div>
+        </main>
+      ) : (
+        <SurgicalAlterationsTab
+          faceSpec={faceSpec}
+          aiImageUrl={aiImageUrl}
+          hasGenerated={hasGenerated}
+          activeCase={activeCase}
+          currentRole={currentRole}
+          styleMode={styleMode}
+          onGenerateInitialComposite={() => handleGenerateComposite(styleMode)}
+          onLogAuditAction={async (action, details) => {
+            const audit = await createSignedAuditEntry(auditEntries, {
+              userId: currentUser.id,
+              role: currentUser.role,
+              caseId: activeCase.id,
+              action,
+              resource: `/cases/${activeCase.id}/alterations`,
+              outcome: 'SUCCESS',
+              details,
+            });
+            const updatedLedger = [...auditEntries, audit];
+            setAuditEntries(updatedLedger);
+            const verifyRes = await verifyAuditLedgerChain(updatedLedger);
+            setAuditResult(verifyRes);
+          }}
+        />
+      )}
 
       {/* Expandable Slide-over Side Drawer for FaceSpec Features Inspector */}
       {showFeatureDrawer && (

@@ -10,7 +10,9 @@ import {
   Grid3X3,
   Download,
   SlidersHorizontal,
-  FileCheck
+  FileCheck,
+  Scissors,
+  Layers
 } from 'lucide-react';
 import { UserRole, ForensicCase, AuditVerificationResult } from '../types';
 
@@ -28,6 +30,8 @@ interface HeaderProps {
   onToggleFeatureDrawer?: () => void;
   isFeatureDrawerOpen?: boolean;
   statedCount?: number;
+  activeTab?: 'studio' | 'surgical';
+  onTabChange?: (tab: 'studio' | 'surgical') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,6 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleFeatureDrawer,
   isFeatureDrawerOpen = false,
   statedCount = 0,
+  activeTab = 'studio',
+  onTabChange,
 }) => {
   return (
     <header className="border-b border-[#E6DFD5] bg-[#FAF8F5]/95 backdrop-blur-md px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 shadow-2xs">
@@ -66,6 +72,39 @@ export const Header: React.FC<HeaderProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Primary Workspace Navigation Tabs */}
+      {onTabChange && (
+        <div className="flex items-center bg-[#EFE8DE] p-1 rounded-xl border border-[#D8CABE] shadow-2xs">
+          <button
+            type="button"
+            onClick={() => onTabChange('studio')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'studio'
+                ? 'bg-white text-[#6B4E2E] shadow-2xs'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5 text-[#8C6D46]" />
+            <span>Composite Studio</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('surgical')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'surgical'
+                ? 'bg-white text-red-900 shadow-2xs'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Scissors className="h-3.5 w-3.5 text-red-600" />
+            <span>Surgical Alterations</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-red-100 text-red-800 border border-red-200">
+              FUGITIVE
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Case & Action Bar with Varied Button Sizes */}
       <div className="flex items-center flex-wrap gap-2 text-xs font-mono">

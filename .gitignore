@@ -51,6 +51,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+bun.lock
+bun.lockb
 
 # Database & Uploads
 *.sqlite

@@ -69,3 +69,56 @@ export async function fetchHealth() {
   }
   return res.json();
 }
+
+export interface TranscribeAudioPayload {
+  audioBase64: string;
+  mimeType?: string;
+}
+
+export interface TranscribeAudioResponse {
+  transcript: string;
+  success: boolean;
+  modelUsed?: string;
+  error?: string;
+}
+
+export async function transcribeAudio(payload: TranscribeAudioPayload): Promise<TranscribeAudioResponse> {
+  const res = await fetch('/api/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Transcription error (${res.status})`);
+  }
+  return res.json();
+}
+
+export interface GenerateAlterationPayload {
+  baseImageBase64?: string;
+  procedureId: string;
+  procedureName: string;
+  promptModifier: string;
+  styleMode?: 'charcoal' | 'photoreal';
+}
+
+export interface GenerateAlterationResponse {
+  imageUrl: string | null;
+  status: 'success' | 'procedural_morph';
+  procedureId: string;
+  modelUsed: string;
+  prompt: string;
+}
+
+export async function generateSurgicalAlteration(payload: GenerateAlterationPayload): Promise<GenerateAlterationResponse> {
+  const res = await fetch('/api/composite/generate-alteration', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`Surgical alteration generation failed: ${res.status}`);
+  }
+  return res.json();
+}

@@ -15,10 +15,16 @@ import {
   Radio,
   X,
   Volume2,
-  Info
+  VolumeX,
+  Info,
+  Settings2,
+  ExternalLink,
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { Utterance, ForensicCase, FaceSpec } from '../types';
 import { COGNITIVE_PROMPTS } from '../services/antiLeadingSafety';
+import { transcribeAudio } from '../services/api';
 
 interface CognitiveInterviewProps {
   utterances: Utterance[];
@@ -47,22 +53,73 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
   const [showCognitiveGuide, setShowCognitiveGuide] = useState(false);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Web Speech API & Microphone State
+  // Microphone & Speech State
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [activeMicLabel, setActiveMicLabel] = useState<string>('Default Microphone');
+  const [availableMics, setAvailableMics] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>('');
+  const [showMicSettings, setShowMicSettings] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [micActiveNotice, setMicActiveNotice] = useState<string | null>(null);
 
+  // References for Web Speech, AudioContext & MediaRecorder
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const webSpeechCapturedRef = useRef<boolean>(false);
+
+  const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   const isSpeechSupported = typeof window !== 'undefined' && 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (('SpeechRecognition' in window) || ('webkitSpeechRecognition' in window));
 
-  // Stop listening helper
-  const stopListening = useCallback(() => {
+  // Query and enumerate available microphone devices
+  const refreshAudioDevices = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      setAvailableMics(mics);
+      if (mics.length > 0 && !selectedMicId) {
+        setSelectedMicId(mics[0].deviceId);
+      }
+    } catch (err) {
+      console.warn('Error enumerating audio devices:', err);
+    }
+  }, [selectedMicId]);
+
+  useEffect(() => {
+    refreshAudioDevices();
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', refreshAudioDevices);
+      return () => {
+        navigator.mediaDevices.removeEventListener('devicechange', refreshAudioDevices);
+      };
+    }
+  }, [refreshAudioDevices]);
+
+  // Cleanly shut down audio stream, analyser and Web Speech
+  const cleanupAudioPipeline = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch {
+        // ignore
+      }
+      audioContextRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -72,125 +129,262 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
       recognitionRef.current = null;
     }
     if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach((track) => track.stop());
+      audioStreamRef.current.getTracks().forEach(track => track.stop());
       audioStreamRef.current = null;
     }
+    setAudioLevel(0);
     setIsListening(false);
     setInterimTranscript('');
   }, []);
 
+  // Stop listening and finalize transcription
+  const stopListening = useCallback(async () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      // recorder onstop handles sending to /api/transcribe if Web Speech was idle
+    } else {
+      cleanupAudioPipeline();
+    }
+  }, [cleanupAudioPipeline]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopListening();
+      cleanupAudioPipeline();
     };
-  }, [stopListening]);
+  }, [cleanupAudioPipeline]);
 
-  // Robust startListening with explicit getUserMedia check first
+  // Robust startListening with device negotiation, live volume analysis, and dual transcription
   const startListening = useCallback(async () => {
     setSpeechError(null);
     setMicActiveNotice(null);
+    recordedChunksRef.current = [];
+    webSpeechCapturedRef.current = false;
 
-    let streamObtained = false;
-
-    // 1. Explicitly request real microphone device permission from the browser
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioStreamRef.current = stream;
-        streamObtained = true;
-      } catch (err: unknown) {
-        console.warn('getUserMedia error:', err);
-        const errObj = err as { name?: string; message?: string };
-        if (errObj.name === 'NotAllowedError' || errObj.name === 'PermissionDeniedError') {
-          setSpeechError('Microphone permission is blocked by your browser settings. Please click the permissions icon in your browser URL bar to allow microphone access, then try again.');
-          return;
-        } else if (errObj.name === 'NotFoundError' || errObj.name === 'DevicesNotFoundError') {
-          setSpeechError('No microphone hardware detected on this device. Please connect an audio input device.');
-          return;
-        }
-      }
-    }
-
-    // 2. Start Web Speech Recognition
-    if (!isSpeechSupported) {
-      if (streamObtained) {
-        setSpeechError('Microphone is active, but Web Speech API is not supported in this browser. Please use Chrome or Edge for live speech-to-text.');
-      } else {
-        setSpeechError('Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
-      }
+    // Check mediaDevices support
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setSpeechError('Microphone capture is not supported in this browser. Please use Chrome, Edge, or Firefox.');
       return;
     }
 
+    let stream: MediaStream | null = null;
+    let chosenDeviceId = selectedMicId;
+
+    // Step 1: Attempt to acquire audio stream with progressive constraint fallbacks
+    try {
+      const constraints: MediaStreamConstraints = chosenDeviceId
+        ? { audio: { deviceId: { ideal: chosenDeviceId } } }
+        : { audio: true };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (primaryErr: unknown) {
+      console.warn('Primary getUserMedia attempt failed, trying fallback constraints:', primaryErr);
+      try {
+        // Fallback 1: basic audio constraint with no special parameters
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (fallbackErr: unknown) {
+        console.warn('Fallback 1 getUserMedia failed, trying relaxed constraints:', fallbackErr);
+        try {
+          // Fallback 2: disable DSP constraints for Bluetooth / virtual inputs
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+          });
+        } catch (finalErr: unknown) {
+          console.error('All microphone getUserMedia attempts failed:', finalErr);
+          const errObj = finalErr as { name?: string; message?: string };
+
+          if (errObj.name === 'NotAllowedError' || errObj.name === 'PermissionDeniedError') {
+            if (isIframe) {
+              setSpeechError('Microphone access is restricted by the embedded preview frame. Click "Open in Standalone Tab" to dictate with full direct microphone access.');
+            } else {
+              setSpeechError('Microphone permission was denied. Please allow microphone access in your browser address bar and try again.');
+            }
+          } else if (errObj.name === 'NotFoundError' || errObj.name === 'DevicesNotFoundError') {
+            setSpeechError('No active microphone hardware detected. Please ensure your microphone or headset is plugged in and recognized by your system.');
+          } else {
+            setSpeechError(`Could not access microphone (${errObj.name || 'Unknown'}). Please check your audio settings.`);
+          }
+          return;
+        }
+      }
+    }
+
+    if (!stream) {
+      setSpeechError('Failed to initialize audio stream.');
+      return;
+    }
+
+    audioStreamRef.current = stream;
+
+    // Retrieve active microphone name and refresh device list with populated labels
+    const activeTrack = stream.getAudioTracks()[0];
+    const detectedName = activeTrack?.label || 'Microphone Connected';
+    setActiveMicLabel(detectedName);
+    refreshAudioDevices();
+
+    // Step 2: Initialize real-time AudioContext Volume Meter (0-100%)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognitionClass();
-      
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        let currentInterim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            setInputText((prev) => {
-              const trimmed = prev.trim();
-              return trimmed ? `${trimmed} ${transcriptPart.trim()}` : transcriptPart.trim();
-            });
-          } else {
-            currentInterim += transcriptPart;
-          }
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
         }
-        setInterimTranscript(currentInterim);
-      };
+        audioContextRef.current = audioCtx;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error event:', event.error);
-        
-        if (event.error === 'not-allowed') {
-          // If stream was successfully obtained, the microphone IS physically allowed by the user!
-          // Chrome sandbox iframes restrict Web Speech cloud service connection without allow="microphone" on iframe.
-          if (streamObtained) {
-            setMicActiveNotice('Microphone connected! Note: Your browser restricts automatic Web Speech transcription inside sandboxed preview iframes. You can dictate in a standalone tab or type witness statements directly.');
-          } else {
-            setSpeechError('Microphone permission was denied by browser settings. Please allow microphone access in site settings.');
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.5;
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const updateVolume = () => {
+          if (!audioStreamRef.current) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
           }
-        } else if (event.error === 'audio-capture') {
-          setSpeechError('Audio capture failed. Please check your microphone connection.');
-        } else if (event.error === 'network') {
-          setSpeechError('Network error connecting to speech transcription service.');
-        } else if (event.error !== 'no-speech') {
-          setSpeechError(`Speech recognition notice: ${event.error}`);
-        }
-        
-        setIsListening(false);
-        setInterimTranscript('');
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        setInterimTranscript('');
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsListening(true);
-    } catch (err: unknown) {
-      console.error('Speech recognition start failed:', err);
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      if (streamObtained) {
-        setMicActiveNotice('Microphone is active. Note: Web Speech recognition is restricted in this preview frame.');
-      } else {
-        setSpeechError(`Could not activate speech recognition: ${msg}`);
+          const average = sum / dataArray.length;
+          // Scale average (0-255) to realistic percentage (0-100)
+          const scaledLevel = Math.min(100, Math.round((average / 128) * 100));
+          setAudioLevel(scaledLevel);
+          animationFrameRef.current = requestAnimationFrame(updateVolume);
+        };
+        updateVolume();
       }
-      setIsListening(false);
+    } catch (audioCtxErr) {
+      console.warn('AudioContext visualization setup error:', audioCtxErr);
     }
-  }, [isSpeechSupported]);
+
+    // Step 3: Setup MediaRecorder for high-fidelity audio capture & server AI transcription
+    let mimeType = 'audio/webm';
+    if (typeof MediaRecorder !== 'undefined') {
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        mimeType = 'audio/ogg';
+      }
+
+      try {
+        const recorder = new MediaRecorder(stream, { mimeType });
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          cleanupAudioPipeline();
+
+          const audioBlob = new Blob(recordedChunksRef.current, { type: mimeType });
+          // If Web Speech already captured text, we don't need to re-transcribe via server
+          if (webSpeechCapturedRef.current && inputText.trim().length > 0) {
+            return;
+          }
+
+          // If audio was recorded (size > 1500 bytes = non-empty), send to Gemini AI audio transcriber
+          if (audioBlob.size > 1500) {
+            setIsTranscribing(true);
+            try {
+              const reader = new FileReader();
+              reader.readAsDataURL(audioBlob);
+              reader.onloadend = async () => {
+                const base64Data = reader.result as string;
+                try {
+                  const result = await transcribeAudio({
+                    audioBase64: base64Data,
+                    mimeType,
+                  });
+                  if (result.success && result.transcript) {
+                    setInputText((prev) => {
+                      const trimmed = prev.trim();
+                      return trimmed ? `${trimmed} ${result.transcript}` : result.transcript;
+                    });
+                    setMicActiveNotice(`Transcribed verbatim: "${result.transcript}"`);
+                  } else {
+                    setMicActiveNotice('Spoken audio captured. Speak clearly or type statement.');
+                  }
+                } catch (tErr: any) {
+                  console.warn('Server transcription error:', tErr);
+                  setSpeechError(tErr.message || 'Could not transcribe speech. You can type directly.');
+                } finally {
+                  setIsTranscribing(false);
+                }
+              };
+            } catch (rErr) {
+              console.warn('FileReader error:', rErr);
+              setIsTranscribing(false);
+            }
+          }
+        };
+
+        recorder.start(250);
+        mediaRecorderRef.current = recorder;
+      } catch (recErr) {
+        console.warn('MediaRecorder init failed:', recErr);
+      }
+    }
+
+    // Step 4: Optional Web Speech API for live streaming text (if available & permitted)
+    if (isSpeechSupported) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognitionClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any) => {
+          let currentInterim = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcriptPart = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              webSpeechCapturedRef.current = true;
+              setInputText((prev) => {
+                const trimmed = prev.trim();
+                return trimmed ? `${trimmed} ${transcriptPart.trim()}` : transcriptPart.trim();
+              });
+            } else {
+              currentInterim += transcriptPart;
+            }
+          }
+          setInterimTranscript(currentInterim);
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onerror = (event: any) => {
+          console.warn('Web Speech API event note:', event.error);
+          // If Web Speech API has not-allowed / audio-capture (common in sandboxed iframes),
+          // MediaRecorder handles recording + Gemini server transcription automatically on stop!
+          if (event.error === 'not-allowed') {
+            setMicActiveNotice('Microphone active! Audio recording active with Gemini Speech Engine.');
+          } else if (event.error !== 'no-speech') {
+            console.info(`Speech event: ${event.error}. MediaRecorder fallback active.`);
+          }
+        };
+
+        recognition.onend = () => {
+          // If recognition stops, MediaRecorder continues until user clicks stop
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (recStartErr) {
+        console.warn('Web Speech recognition start deferred to MediaRecorder:', recStartErr);
+      }
+    }
+
+    setIsListening(true);
+  }, [isSpeechSupported, isIframe, selectedMicId, refreshAudioDevices, cleanupAudioPipeline, inputText]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -198,6 +392,10 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
     } else {
       startListening();
     }
+  };
+
+  const openInStandaloneWindow = () => {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer');
   };
 
   // Auto-scroll to bottom when new messages arrive
@@ -448,21 +646,47 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
 
       {/* Chat Input Form */}
       <form onSubmit={handleSubmit} className="p-3 border-t border-[#E6DFD5] bg-[#F7F3EC]/90">
-        {/* Speech Error Notice */}
+        {/* Speech Error Notice with Iframe Standalone Quick-Fix */}
         {speechError && (
-          <div className="mb-2 p-2 rounded-lg bg-amber-50 border border-amber-300 text-[11px] text-amber-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
-            <div className="flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span>{speechError}</span>
+          <div className="mb-2 p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-[11px] text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-950">{speechError}</p>
+                {isIframe && (
+                  <p className="text-[10px] text-amber-800 mt-0.5">
+                    Browsers often restrict microphone access within sandboxed preview frames. Opening in a direct tab immediately restores physical microphone access.
+                  </p>
+                )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setSpeechError(null)}
-              className="text-amber-700 hover:text-amber-900 p-0.5 rounded cursor-pointer"
-              title="Dismiss notice"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+              {isIframe && (
+                <button
+                  type="button"
+                  onClick={openInStandaloneWindow}
+                  className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Open in Standalone Tab</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => startListening()}
+                className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[11px] font-medium transition cursor-pointer"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setSpeechError(null)}
+                className="text-amber-700 hover:text-amber-900 p-1 rounded cursor-pointer"
+                title="Dismiss notice"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -470,7 +694,7 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
         {micActiveNotice && (
           <div className="mb-2 p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-[11px] text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
             <div className="flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               <span>{micActiveNotice}</span>
             </div>
             <button
@@ -484,54 +708,170 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
           </div>
         )}
 
-        {/* Live Speech Recognition Waveform & Interim HUD */}
+        {/* Transcribing Audio State Banner */}
+        {isTranscribing && (
+          <div className="mb-2 p-2 rounded-lg bg-[#FAF5EE] border border-[#D5C6B4] text-[11px] text-[#6B4E2E] flex items-center gap-2 shadow-2xs animate-pulse">
+            <Sparkles className="h-3.5 w-3.5 text-[#8C6D46] animate-spin shrink-0" />
+            <span className="font-medium">Processing spoken eyewitness audio with Gemini Speech Transcription...</span>
+          </div>
+        )}
+
+        {/* Live Microphone HUD with Sound Level Meter & Waveform */}
         {isListening && (
-          <div className="mb-2 p-2.5 rounded-lg bg-red-50 border border-red-300 flex flex-col gap-1.5 animate-in fade-in duration-150 shadow-2xs">
-            <div className="flex items-center justify-between">
+          <div className="mb-2.5 p-3 rounded-lg bg-stone-900 text-white border border-stone-700 flex flex-col gap-2 animate-in fade-in duration-150 shadow-md">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </span>
-                <span className="text-[11px] font-mono font-semibold text-red-800 uppercase tracking-wider flex items-center gap-1">
-                  <Radio className="h-3 w-3 text-red-600 animate-pulse" />
-                  Live Witness Audio Dictation Active
+                <span className="text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Radio className="h-3.5 w-3.5 text-red-400 animate-pulse" />
+                  Recording Witness Statement
+                </span>
+                <span className="text-[10px] font-mono text-stone-300 bg-stone-800 px-2 py-0.5 rounded border border-stone-700 truncate max-w-[180px]" title={activeMicLabel}>
+                  🎤 {activeMicLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-red-800 bg-red-100 px-1.5 py-0.5 rounded border border-red-200">
-                  Web Speech (en-US)
-                </span>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={stopListening}
-                  className="text-[10px] font-medium px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white transition cursor-pointer shadow-2xs"
+                  className="text-[11px] font-medium px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition cursor-pointer flex items-center gap-1 shadow-2xs"
                 >
-                  Stop Dictating
+                  <CheckCircle2 className="h-3 w-3" />
+                  Done Dictating
+                </button>
+                <button
+                  type="button"
+                  onClick={cleanupAudioPipeline}
+                  className="text-[11px] font-medium px-2 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-300 transition cursor-pointer"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
-            <div className="text-xs text-stone-800 bg-white p-2 rounded border border-red-200 min-h-[1.75rem] flex items-center">
+
+            {/* Live Audio Level Meter */}
+            <div className="flex items-center gap-2 pt-1 border-t border-stone-800">
+              <div className="flex items-center gap-1 text-[10px] font-mono text-stone-400 shrink-0 w-28">
+                {audioLevel > 5 ? (
+                  <>
+                    <Volume2 className="h-3 w-3 text-emerald-400 animate-pulse" />
+                    <span className="text-emerald-400 font-semibold">Sound: {audioLevel}%</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="h-3 w-3 text-stone-500" />
+                    <span>Speak now ({audioLevel}%)</span>
+                  </>
+                )}
+              </div>
+              {/* Dynamic volume level bar */}
+              <div className="flex-1 h-2 bg-stone-800 rounded-full overflow-hidden border border-stone-700">
+                <div
+                  className={`h-full transition-all duration-75 rounded-full ${
+                    audioLevel > 50 ? 'bg-amber-400' : audioLevel > 10 ? 'bg-emerald-400' : 'bg-stone-600'
+                  }`}
+                  style={{ width: `${Math.max(4, audioLevel)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Live transcript or speaking prompt */}
+            <div className="text-xs bg-stone-950 p-2 rounded border border-stone-800 min-h-[1.75rem] flex items-center">
               {interimTranscript ? (
-                <span className="italic text-[#8C6D46] font-medium">
+                <span className="italic text-amber-300 font-medium">
                   "{interimTranscript}"
                 </span>
               ) : (
-                <span className="text-stone-500 italic text-[11px] flex items-center gap-1.5">
-                  <Volume2 className="h-3 w-3 animate-pulse text-red-500" />
-                  Listening... speak witness description into your microphone.
+                <span className="text-stone-400 italic text-[11px] flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  Microphone is actively capturing your voice. Speak freely — audio will transcribe upon completion.
                 </span>
               )}
             </div>
           </div>
         )}
 
+        {/* Microphone Settings / Device Selection Popover */}
+        {showMicSettings && (
+          <div className="mb-2.5 p-3 rounded-lg bg-white border border-[#D5C6B4] shadow-md animate-in fade-in duration-100 text-xs">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#EAE2D5]">
+              <span className="font-semibold text-stone-800 flex items-center gap-1.5">
+                <Settings2 className="h-3.5 w-3.5 text-[#8C6D46]" />
+                Microphone Hardware & Configuration
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowMicSettings(false)}
+                className="text-stone-400 hover:text-stone-700 p-0.5 rounded cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-stone-600 mb-1">
+                  Audio Input Device:
+                </label>
+                {availableMics.length > 0 ? (
+                  <select
+                    value={selectedMicId}
+                    onChange={(e) => {
+                      setSelectedMicId(e.target.value);
+                      if (isListening) {
+                        stopListening();
+                      }
+                    }}
+                    className="w-full bg-[#FAF7F2] border border-[#D5C6B4] rounded px-2.5 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-[#8C6D46]"
+                  >
+                    {availableMics.map((mic, idx) => (
+                      <option key={mic.deviceId || idx} value={mic.deviceId}>
+                        {mic.label || `Microphone Input ${idx + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="text-[11px] text-stone-500 bg-[#FAF7F2] p-2 rounded border border-[#EAE2D5] flex items-center justify-between">
+                    <span>Default system microphone will be used</span>
+                    <button
+                      type="button"
+                      onClick={refreshAudioDevices}
+                      className="text-[#8C6D46] hover:underline font-mono text-[10px]"
+                    >
+                      Refresh list
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isIframe && (
+                <div className="p-2 rounded bg-amber-50 border border-amber-200 flex items-center justify-between gap-2">
+                  <div className="text-[11px] text-amber-900">
+                    <span className="font-medium">Sandbox Notice:</span> If the browser blocks audio in this preview, open in a dedicated tab.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openInStandaloneWindow}
+                    className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1 shrink-0"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Open in Tab</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2 items-center">
-          {/* Web Speech Dictation Microphone Button - Medium Size */}
+          {/* Web Speech Dictation Microphone Button */}
           <button
             type="button"
             onClick={toggleListening}
-            disabled={isProcessing}
+            disabled={isProcessing || isTranscribing}
             className={`px-3 py-2 rounded-lg border text-xs sm:text-sm font-medium transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
               isListening
                 ? 'bg-red-600 hover:bg-red-700 border-red-600 text-white animate-pulse ring-2 ring-red-300'
@@ -539,14 +879,14 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
             }`}
             title={
               isListening
-                ? 'Stop live audio dictation'
-                : 'Dictate witness statement with Web Speech API'
+                ? 'Click to stop dictation and transcribe'
+                : 'Click to speak witness statement via microphone'
             }
           >
             {isListening ? (
               <>
                 <MicOff className="h-4 w-4 text-white" />
-                <span className="hidden sm:inline">Listening</span>
+                <span className="hidden sm:inline">Listening...</span>
               </>
             ) : (
               <>
@@ -556,20 +896,40 @@ export const CognitiveInterview: React.FC<CognitiveInterviewProps> = ({
             )}
           </button>
 
+          {/* Quick Microphone Hardware Settings Button */}
+          <button
+            type="button"
+            onClick={() => setShowMicSettings((prev) => !prev)}
+            className={`p-2 rounded-lg border text-stone-600 transition cursor-pointer shadow-2xs ${
+              showMicSettings
+                ? 'bg-[#EAE2D5] border-[#8C6D46] text-[#8C6D46]'
+                : 'bg-white hover:bg-[#EFE8DE] border-[#D4C5B3]'
+            }`}
+            title="Microphone hardware settings & device selection"
+          >
+            <Settings2 className="h-4 w-4" />
+          </button>
+
           {/* Chat text input */}
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={isListening ? "Listening... speak witness description now" : "Describe suspect features or respond to interviewer..."}
-            disabled={isProcessing}
+            placeholder={
+              isListening 
+                ? "Microphone is recording... speak suspect description now" 
+                : isTranscribing 
+                ? "Transcribing your spoken words..."
+                : "Describe suspect features or respond to interviewer..."
+            }
+            disabled={isProcessing || isTranscribing}
             className="flex-1 bg-white border border-[#D5C6B4] rounded-lg px-3.5 py-2 text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-[#8C6D46] focus:ring-1 focus:ring-[#8C6D46] disabled:opacity-60 shadow-2xs"
           />
 
           {/* Prominent Primary Send Button */}
           <button
             type="submit"
-            disabled={isProcessing || !inputText.trim()}
+            disabled={isProcessing || isTranscribing || !inputText.trim()}
             className="px-4 py-2 bg-[#8C6D46] hover:bg-[#785C3A] disabled:bg-[#E5DDD0] disabled:text-stone-400 text-white text-xs sm:text-sm font-medium rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
           >
             {isProcessing ? (
