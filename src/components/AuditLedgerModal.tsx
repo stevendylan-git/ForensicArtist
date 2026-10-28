@@ -47,13 +47,13 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
     const headers = ['Seq', 'Timestamp', 'User', 'Role', 'Action', 'Resource', 'Outcome', 'PreviousHash', 'EntryHash'];
     const rows = entries.map(e => [
       e.seq,
-      `"${e.timestamp}"`,
+      `"${e.timestampUtc}"`,
       `"${e.userId}"`,
       `"${e.role}"`,
       `"${e.action}"`,
       `"${e.resource}"`,
       `"${e.outcome}"`,
-      e.previousHash,
+      e.prevHash,
       e.entryHash
     ]);
 
@@ -202,7 +202,7 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
                   }`}
                 >
                   <td className="p-2.5 text-stone-500 font-bold">#{entry.seq}</td>
-                  <td className="p-2.5 text-stone-600 whitespace-nowrap">{entry.timestamp}</td>
+                  <td className="p-2.5 text-stone-600 whitespace-nowrap">{entry.timestampUtc}</td>
                   <td className="p-2.5 whitespace-nowrap">
                     <span className="font-semibold text-stone-900">{entry.role}</span>
                     <span className="text-stone-500 text-[10px] block font-sans">{entry.userId}</span>
@@ -239,7 +239,7 @@ export const AuditLedgerModal: React.FC<AuditLedgerModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-[#D5C6B4] text-[11px]">
               <div>
                 <div className="text-stone-500">Previous Hash (H_prev):</div>
-                <div className="text-[#8C6D46] break-all">{selectedEntry.previousHash}</div>
+                <div className="text-[#8C6D46] break-all">{selectedEntry.prevHash}</div>
                 <div className="text-stone-500 mt-2">Entry Hash (H_entry = SHA256(H_prev || Payload)):</div>
                 <div className="text-emerald-700 font-bold break-all">{selectedEntry.entryHash}</div>
               </div>
