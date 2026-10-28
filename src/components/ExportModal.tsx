@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { FaceSpec, ForensicCase, UserProfile } from '../types';
 import { drawForensicComposite } from '../services/canvasRenderer';
+import { generateDetailedForensicArtistNarrative } from '../services/faceSpecEngine';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ interface ExportModalProps {
   currentUser: UserProfile;
   entryHash?: string;
   onLogExport: (format: string, mode: string) => void;
+  hasGenerated?: boolean;
+  aiImageUrl?: string | null;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -31,11 +34,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   currentUser,
   entryHash,
   onLogExport,
+  hasGenerated = false,
+  aiImageUrl = null,
 }) => {
   const [exportFormat, setExportFormat] = useState<'png' | 'pdf'>('png');
   const [renderMode, setRenderMode] = useState<'charcoal' | 'photoreal'>('charcoal');
   const [upscale, setUpscale] = useState(true);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [copiedNarrative, setCopiedNarrative] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   if (!isOpen) return null;
@@ -48,13 +54,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let imgEl: HTMLImageElement | undefined = undefined;
+    if (aiImageUrl) {
+      imgEl = new Image();
+      imgEl.src = aiImageUrl;
+    }
+
     drawForensicComposite(ctx, faceSpec, {
       width: size,
       height: size,
       styleMode: renderMode,
+      viewAngle: 'frontal',
       caseNumber: activeCase.caseNumber,
       version,
       entryHash,
+      hasGenerated,
+      aiImageElement: imgEl,
     });
 
     const dataUrl = canvas.toDataURL('image/png');
@@ -111,14 +126,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     if (canvas) {
                       const ctx = canvas.getContext('2d');
                       if (ctx) {
-                        drawForensicComposite(ctx, faceSpec, {
-                          width: canvas.width,
-                          height: canvas.height,
-                          styleMode: renderMode,
-                          caseNumber: activeCase.caseNumber,
-                          version,
-                          entryHash,
-                        });
+                          drawForensicComposite(ctx, faceSpec, {
+                            width: canvas.width,
+                            height: canvas.height,
+                            styleMode: renderMode,
+                            viewAngle: 'frontal',
+                            caseNumber: activeCase.caseNumber,
+                            version,
+                            entryHash,
+                            hasGenerated,
+                          });
                       }
                     }
                   }}
@@ -202,6 +219,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onChange={(e) => setUpscale(e.target.checked)}
                   className="rounded text-cyan-500 focus:ring-0 cursor-pointer"
                 />
+              </div>
+
+              {/* Detailed Forensic Artist Specification Brief */}
+              <div className="p-3 rounded-lg bg-amber-950/20 border border-amber-600/40 text-[11px] space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-amber-300 font-semibold flex items-center gap-1.5 font-mono">
+                    <FileText className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Forensic Artist Narrative Specification</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = generateDetailedForensicArtistNarrative(faceSpec, activeCase.caseNumber, activeCase.witnessPseudonym);
+                      navigator.clipboard.writeText(text);
+                      setCopiedNarrative(true);
+                      setTimeout(() => setCopiedNarrative(false), 2000);
+                    }}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700/60 transition cursor-pointer"
+                  >
+                    {copiedNarrative ? 'Copied!' : 'Copy Paragraph'}
+                  </button>
+                </div>
+                <p className="text-slate-300 font-sans leading-relaxed text-[11px] line-clamp-4 hover:line-clamp-none transition-all duration-300 cursor-pointer bg-slate-950/60 p-2 rounded border border-amber-950/80">
+                  {generateDetailedForensicArtistNarrative(faceSpec, activeCase.caseNumber, activeCase.witnessPseudonym)}
+                </p>
               </div>
 
               {/* Embedded Metadata Chunk */}

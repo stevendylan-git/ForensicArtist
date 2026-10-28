@@ -47,6 +47,7 @@ export interface FaceSpec {
   jawline_chin: FeatureAttribute;
   cheekbones_ears: FeatureAttribute;
   facial_hair: FeatureAttribute;
+  facial_symmetry: FeatureAttribute;
   distinguishing_marks: GranularDistinguishingMarksSpec;
   accessories: FeatureAttribute;
   expression: FeatureAttribute;

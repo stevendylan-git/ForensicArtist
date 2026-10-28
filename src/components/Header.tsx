@@ -105,11 +105,11 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(e) => onRoleChange(e.target.value as UserRole)}
             className="bg-transparent text-cyan-300 font-semibold focus:outline-none cursor-pointer pr-1"
           >
-            <option value="INVESTIGATOR" className="bg-slate-900 text-slate-200">Investigator (Sarah Miller)</option>
-            <option value="FORENSIC_ARTIST" className="bg-slate-900 text-slate-200">Forensic Artist (Alex Reed)</option>
-            <option value="SUPERVISOR" className="bg-slate-900 text-slate-200">Supervisor (Marcus Vance)</option>
-            <option value="ADMIN" className="bg-slate-900 text-slate-200">System Admin</option>
-            <option value="AUDITOR" className="bg-slate-900 text-amber-300">Auditor (Elena Rostova)</option>
+            <option value="INVESTIGATOR" className="bg-slate-900 text-slate-200">Investigator</option>
+            <option value="FORENSIC_ARTIST" className="bg-slate-900 text-slate-200">Forensic Artist</option>
+            <option value="SUPERVISOR" className="bg-slate-900 text-slate-200">Supervisor</option>
+            <option value="ADMIN" className="bg-slate-900 text-slate-200">Admin</option>
+            <option value="AUDITOR" className="bg-slate-900 text-amber-300">Auditor</option>
           </select>
         </div>
 

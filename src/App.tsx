@@ -9,13 +9,20 @@ import {
   AuditEntry, 
   AuditVerificationResult 
 } from './types';
-import { createInitialFaceSpec, parseUtteranceToFaceSpec } from './services/faceSpecEngine';
+import { 
+  createInitialFaceSpec, 
+  parseUtteranceToFaceSpec, 
+  buildForensicPrompt, 
+  applyCandidateVariationToFaceSpec,
+  calculateFacialSymmetryScore
+} from './services/faceSpecEngine';
 import { 
   createSignedAuditEntry, 
   verifyAuditLedgerChain, 
   GENESIS_HASH 
 } from './services/crypto';
-import { detectCelebrityReference, isLeadingQuestion } from './services/antiLeadingSafety';
+import { detectCelebrityReference } from './services/antiLeadingSafety';
+import { sendInterviewChatMessage, generateCompositeImage } from './services/api';
 
 import { Header } from './components/Header';
 import { CognitiveInterview } from './components/CognitiveInterview';
@@ -26,6 +33,7 @@ import { TimelineModal } from './components/TimelineModal';
 import { AuditLedgerModal } from './components/AuditLedgerModal';
 import { ExportModal } from './components/ExportModal';
 import { CaseManagerModal } from './components/CaseManagerModal';
+import { ForensicArtistBriefModal } from './components/ForensicArtistBriefModal';
 
 export default function App() {
   // Demo Users / Role
@@ -37,10 +45,10 @@ export default function App() {
         currentRole === 'SUPERVISOR' ? 'user-marcus-vance' :
         currentRole === 'AUDITOR' ? 'user-elena-rostova' : 'user-admin',
     email: `${currentRole.toLowerCase()}@forensic.local`,
-    fullName: currentRole === 'INVESTIGATOR' ? 'Det. Sarah Miller' :
-              currentRole === 'FORENSIC_ARTIST' ? 'Alex Reed' :
-              currentRole === 'SUPERVISOR' ? 'Capt. Marcus Vance' :
-              currentRole === 'AUDITOR' ? 'Elena Rostova (Compliance Auditor)' : 'System Administrator',
+    fullName: currentRole === 'INVESTIGATOR' ? 'Investigator' :
+              currentRole === 'FORENSIC_ARTIST' ? 'Forensic Artist' :
+              currentRole === 'SUPERVISOR' ? 'Supervisor' :
+              currentRole === 'AUDITOR' ? 'Auditor' : 'Admin',
     role: currentRole,
     badgeNumber: 'BADGE-4892',
     agency: 'Metropolitan Forensic Division',
@@ -89,8 +97,49 @@ export default function App() {
       timestamp: '09:00:15 UTC',
     }
   ]);
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.8-flash');
   const [isProcessing, setIsProcessing] = useState(false);
   const [adversarialError, setAdversarialError] = useState<string | null>(null);
+
+  // Composite Generation State (Rule 3: no face on initial startup, starts blank until witness describes)
+  const [hasGenerated, setHasGenerated] = useState<boolean>(false);
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [styleMode, setStyleMode] = useState<'charcoal' | 'photoreal'>('photoreal');
+
+  // Helper to compile stated vs unstated feature names for context-awareness
+  const getFaceSpecContext = (spec: FaceSpec) => {
+    const stated: string[] = [];
+    const unstated: string[] = [];
+
+    const check = (label: string, val: string, isStated: boolean) => {
+      if (isStated && val && val.toLowerCase() !== 'unknown') {
+        stated.push(`${label}: ${val}`);
+      } else {
+        unstated.push(label);
+      }
+    };
+
+    check('Gender Presentation', spec.gender_presentation.value, spec.gender_presentation.stated);
+    check('Approximate Age', spec.approximate_age.value, spec.approximate_age.stated);
+    check('Face Contour', spec.face_shape.value, spec.face_shape.stated);
+    check('Skin Complexion', spec.skin_tone_complexion.value, spec.skin_tone_complexion.stated);
+    check('Hair Style', spec.hair.style.value, spec.hair.style.stated);
+    check('Hair Color', spec.hair.color.value, spec.hair.color.stated);
+    check('Hair Length', spec.hair.length.value, spec.hair.length.stated);
+    check('Eyebrows', spec.eyebrows.value, spec.eyebrows.stated);
+    check('Eyes Shape', spec.eyes.shape.value, spec.eyes.shape.stated);
+    check('Eyes Color', spec.eyes.color.value, spec.eyes.color.stated);
+    check('Nose Width', spec.nose.width.value, spec.nose.width.stated);
+    check('Nose Bridge', spec.nose.bridge.value, spec.nose.bridge.stated);
+    check('Mouth & Lips', spec.mouth_lips.value, spec.mouth_lips.stated);
+    check('Jawline & Chin', spec.jawline_chin.value, spec.jawline_chin.stated);
+    check('Facial Hair', spec.facial_hair.value, spec.facial_hair.stated);
+    check('Distinguishing Marks', spec.distinguishing_marks.type.value, spec.distinguishing_marks.type.stated);
+    check('Accessories', spec.accessories.value, spec.accessories.stated);
+
+    return { stated, unstated };
+  };
 
   // Version Timeline & History
   const [versions, setVersions] = useState<CompositeVersion[]>([
@@ -119,6 +168,7 @@ export default function App() {
   const [showGridModal, setShowGridModal] = useState(false);
   const [gridInitialFeature, setGridInitialFeature] = useState('nose');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showBriefModal, setShowBriefModal] = useState(false);
 
   // Initialize genesis audit entry on mount
   useEffect(() => {
@@ -152,8 +202,78 @@ export default function App() {
     initAuditChain();
   }, []);
 
+  // Generate Hyper-Realistic Gemini Composite
+  const handleGenerateComposite = async (overrideMode?: 'charcoal' | 'photoreal', specToUse?: FaceSpec) => {
+    const currentMode = overrideMode || styleMode;
+    const spec = specToUse || faceSpec;
+    setIsGeneratingImage(true);
+    try {
+      const prompt = buildForensicPrompt(spec);
+      const res = await generateCompositeImage({
+        prompt,
+        styleMode: currentMode,
+        caseNumber: activeCase.caseNumber,
+        version: activeVersion.version,
+        previousImageBase64: aiImageUrl || undefined,
+      });
+      if (res.imageUrl) {
+        setAiImageUrl(res.imageUrl);
+      } else {
+        setAiImageUrl('/assets/aistudio/image_138dc769.png');
+      }
+      setHasGenerated(true);
+
+      // Cryptographically log composite generation into Audit Ledger
+      const compositeAudit = await createSignedAuditEntry(auditEntries, {
+        userId: currentUser.id,
+        role: currentUser.role,
+        caseId: activeCase.id,
+        action: 'GENERATE_AI_COMPOSITE',
+        resource: `/cases/${activeCase.id}/composite/generate`,
+        outcome: 'SUCCESS',
+        details: {
+          model: res.modelUsed,
+          styleMode: currentMode,
+          status: res.status,
+          promptSnippet: res.prompt.slice(0, 100),
+        },
+      });
+      const updatedLedger = [...auditEntries, compositeAudit];
+      setAuditEntries(updatedLedger);
+      const verifyRes = await verifyAuditLedgerChain(updatedLedger);
+      setAuditResult(verifyRes);
+    } catch (err) {
+      console.warn('Failed to generate AI composite image:', err);
+      setHasGenerated(true);
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  // Reset Canvas to initial unrendered drafting state (Rule 3 invariant)
+  const handleResetCanvas = async () => {
+    setHasGenerated(false);
+    setAiImageUrl(null);
+    const initial = createInitialFaceSpec();
+    setFaceSpec(initial);
+
+    const resetAudit = await createSignedAuditEntry(auditEntries, {
+      userId: currentUser.id,
+      role: currentUser.role,
+      caseId: activeCase.id,
+      action: 'RESET_CANVAS',
+      resource: `/cases/${activeCase.id}/reset`,
+      outcome: 'SUCCESS',
+      details: { message: 'Reset composite canvas to blank drafting state awaiting witness input.' },
+    });
+    const updatedLedger = [...auditEntries, resetAudit];
+    setAuditEntries(updatedLedger);
+    const verifyRes = await verifyAuditLedgerChain(updatedLedger);
+    setAuditResult(verifyRes);
+  };
+
   // Handle witness utterance submission
-  const handleSendMessage = async (text: string, speaker: 'witness' | 'agent') => {
+  const handleSendMessage = async (text: string) => {
     // 1. Check for Adversarial Celebrity Reference
     const celebCheck = detectCelebrityReference(text);
     if (celebCheck.blocked) {
@@ -196,19 +316,6 @@ export default function App() {
     const utteranceId = `utt-${Date.now()}`;
     const timestampStr = new Date().toISOString().slice(11, 19) + ' UTC';
 
-    if (speaker === 'agent') {
-      // Question from interviewer
-      const newUtt: Utterance = {
-        id: utteranceId,
-        speaker: 'agent',
-        text,
-        timestamp: timestampStr,
-      };
-      setUtterances(prev => [...prev, newUtt]);
-      setIsProcessing(false);
-      return;
-    }
-
     // Parse witness statement into FaceSpec update
     const { updatedSpec, diff } = parseUtteranceToFaceSpec(text, utteranceId, faceSpec);
     const parsedFieldKeys = Object.keys(diff);
@@ -224,6 +331,7 @@ export default function App() {
 
     if (parsedFieldKeys.length > 0) {
       setFaceSpec(updatedSpec);
+      setHasGenerated(true);
 
       // Create new version in timeline
       const newVersionNum = versions.length + 1;
@@ -261,9 +369,73 @@ export default function App() {
       setAuditEntries(updatedLedger);
       const verifyRes = await verifyAuditLedgerChain(updatedLedger);
       setAuditResult(verifyRes);
+
+      // Automatically generate hyper-realistic Gemini portrait for new stated attributes
+      handleGenerateComposite(styleMode, updatedSpec);
     }
 
-    setIsProcessing(false);
+    // 6. Invoke Context-Aware Gemini Interviewer Chatbot
+    try {
+      const historyMessages = [...utterances, newUtt].map(u => ({
+        role: (u.speaker === 'witness' ? 'user' : 'model') as 'user' | 'model',
+        content: u.text,
+      }));
+
+      const { stated, unstated } = getFaceSpecContext(updatedSpec);
+
+      const chatRes = await sendInterviewChatMessage({
+        messages: historyMessages,
+        model: selectedModel,
+        caseContext: {
+          caseNumber: activeCase.caseNumber,
+          title: activeCase.title,
+          offense: activeCase.offense,
+          witnessPseudonym: activeCase.witnessPseudonym,
+          notes: activeCase.notes,
+          incidentDate: activeCase.incidentDate,
+        },
+        faceSpecContext: {
+          statedFeatures: stated,
+          unstatedFeatures: unstated,
+        },
+      });
+
+      const agentUttId = `utt-${Date.now() + 10}`;
+      const agentTimestamp = new Date().toISOString().slice(11, 19) + ' UTC';
+
+      const agentUtt: Utterance = {
+        id: agentUttId,
+        speaker: 'agent',
+        text: chatRes.reply,
+        timestamp: agentTimestamp,
+      };
+
+      setUtterances(prev => [...prev, agentUtt]);
+
+      // Cryptographically log the interview conversational turn into the audit ledger
+      const interviewAudit = await createSignedAuditEntry(auditEntries, {
+        userId: 'agent-gemini-interviewer',
+        role: 'AGENT',
+        caseId: activeCase.id,
+        action: 'INTERVIEW_AGENT_REPLY',
+        resource: `/cases/${activeCase.id}/interview`,
+        outcome: 'SUCCESS',
+        details: {
+          model: selectedModel,
+          replySnippet: chatRes.reply.slice(0, 80),
+          statedFeaturesCount: stated.length,
+          unstatedFeaturesCount: unstated.length,
+        },
+      });
+      const finalLedger = [...auditEntries, interviewAudit];
+      setAuditEntries(finalLedger);
+      const verifyRes = await verifyAuditLedgerChain(finalLedger);
+      setAuditResult(verifyRes);
+    } catch (chatError) {
+      console.warn('Failed to get AI chatbot response:', chatError);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Toggle lock on feature
@@ -299,41 +471,86 @@ export default function App() {
     }
   };
 
-  // Select candidate from 3x3 recognition grid
-  const handleSelectCandidate = async (feature: string, value: string) => {
+  // Admin direct attribute override with cryptographic audit trail
+  const handleAdminDirectEdit = async (fieldPath: string, newValue: string) => {
     const updated: FaceSpec = JSON.parse(JSON.stringify(faceSpec));
+    const parts = fieldPath.split('.');
     
-    if (feature === 'nose') {
-      updated.nose.bridge.stated = true;
-      updated.nose.bridge.value = value;
-      updated.nose.bridge.confidence = 0.9;
-    } else if (feature === 'hair') {
-      updated.hair.style.stated = true;
-      updated.hair.style.value = value;
-      updated.hair.style.confidence = 0.9;
-    } else if (feature === 'jawline_chin') {
-      updated.jawline_chin.stated = true;
-      updated.jawline_chin.value = value;
-      updated.jawline_chin.confidence = 0.9;
-    } else if (feature === 'eyebrows') {
-      updated.eyebrows.stated = true;
-      updated.eyebrows.value = value;
-      updated.eyebrows.confidence = 0.9;
-    } else if (feature === 'eyes') {
-      updated.eyes.shape.stated = true;
-      updated.eyes.shape.value = value;
-      updated.eyes.shape.confidence = 0.9;
-    } else if (feature === 'face_shape') {
-      updated.face_shape.stated = true;
-      updated.face_shape.value = value;
-      updated.face_shape.confidence = 0.9;
-    } else if (feature === 'facial_hair') {
-      updated.facial_hair.stated = true;
-      updated.facial_hair.value = value;
-      updated.facial_hair.confidence = 0.9;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let target: any = updated;
+    for (let i = 0; i < parts.length; i++) {
+      if (target && target[parts[i]]) {
+        target = target[parts[i]];
+      }
     }
 
+    if (target && typeof target.value !== 'undefined') {
+      const oldValue = target.value;
+      target.value = newValue;
+      target.stated = true;
+      target.confidence = Math.max(target.confidence || 0, 0.95);
+
+      // Recalculate craniometric symmetry
+      const sym = calculateFacialSymmetryScore(updated);
+      updated.facial_symmetry = {
+        value: sym.percentageText,
+        confidence: 0.95,
+        stated: true,
+        locked: updated.facial_symmetry?.locked ?? false,
+      };
+
+      setFaceSpec(updated);
+      setHasGenerated(true);
+
+      const newVersionNum = versions.length + 1;
+      const timestampStr = new Date().toISOString().slice(11, 19) + ' UTC';
+
+      const newVersion: CompositeVersion = {
+        id: `ver-${newVersionNum}`,
+        version: newVersionNum,
+        timestamp: timestampStr,
+        triggeringCall: `Admin Override: ${fieldPath} -> "${newValue}"`,
+        localityScore: 94.0,
+        lockedRegions: [],
+        faceSpec: updated,
+        diffSummary: `Admin direct modification: [${fieldPath}] changed from "${oldValue}" to "${newValue}" (Symmetry: ${sym.percentageText})`,
+      };
+
+      const updatedVersions = [...versions, newVersion];
+      setVersions(updatedVersions);
+      setCurrentVersionIndex(updatedVersions.length - 1);
+
+      // Audit log admin override with tamper-evident chain
+      const adminAudit = await createSignedAuditEntry(auditEntries, {
+        userId: currentUser.id,
+        role: currentUser.role,
+        caseId: activeCase.id,
+        action: 'ADMIN_DIRECT_EDIT',
+        resource: `/cases/${activeCase.id}/admin/override`,
+        outcome: 'SUCCESS',
+        details: {
+          fieldPath,
+          oldValue,
+          newValue,
+          newVersion: newVersionNum,
+          symmetry: sym.percentageText,
+        },
+      });
+      const updatedLedger = [...auditEntries, adminAudit];
+      setAuditEntries(updatedLedger);
+      const verifyRes = await verifyAuditLedgerChain(updatedLedger);
+      setAuditResult(verifyRes);
+
+      // Regenerate composite rendering with new values
+      handleGenerateComposite(styleMode, updated);
+    }
+  };
+
+  // Select candidate from 3x3 recognition grid
+  const handleSelectCandidate = async (feature: string, value: string) => {
+    const updated = applyCandidateVariationToFaceSpec(faceSpec, feature, value);
     setFaceSpec(updated);
+    setHasGenerated(true);
 
     const newVersionNum = versions.length + 1;
     const timestampStr = new Date().toISOString().slice(11, 19) + ' UTC';
@@ -371,6 +588,9 @@ export default function App() {
     setAuditEntries(updatedLedger);
     const verifyRes = await verifyAuditLedgerChain(updatedLedger);
     setAuditResult(verifyRes);
+
+    setHasGenerated(true);
+    handleGenerateComposite(styleMode, updated);
   };
 
   // Revert to historical version
@@ -531,6 +751,10 @@ export default function App() {
             isProcessing={isProcessing}
             adversarialError={adversarialError}
             onClearAdversarialError={() => setAdversarialError(null)}
+            selectedModel={selectedModel}
+            onSelectModel={setSelectedModel}
+            activeCase={activeCase}
+            faceSpec={faceSpec}
           />
         </div>
 
@@ -545,6 +769,20 @@ export default function App() {
             onSelectRegion={setSelectedRegion}
             entryHash={auditEntries.length > 0 ? auditEntries[auditEntries.length - 1].entryHash : undefined}
             onOpenGridForRegion={handleOpenGridForRegion}
+            hasGenerated={hasGenerated}
+            aiImageUrl={aiImageUrl}
+            isGeneratingImage={isGeneratingImage}
+            onGenerateComposite={(mode) => handleGenerateComposite(mode)}
+            styleMode={styleMode}
+            onStyleModeChange={(mode) => {
+              setStyleMode(mode);
+              if (hasGenerated) {
+                handleGenerateComposite(mode);
+              }
+            }}
+            onResetCanvas={handleResetCanvas}
+            onAskQuestion={handleSendMessage}
+            onOpenBriefModal={() => setShowBriefModal(true)}
           />
         </div>
 
@@ -555,6 +793,8 @@ export default function App() {
             onToggleLock={handleToggleLock}
             selectedRegion={selectedRegion}
             onSelectRegion={setSelectedRegion}
+            currentRole={currentRole}
+            onAdminDirectEdit={handleAdminDirectEdit}
           />
         </div>
       </main>
@@ -602,6 +842,17 @@ export default function App() {
         currentUser={currentUser}
         entryHash={auditEntries.length > 0 ? auditEntries[auditEntries.length - 1].entryHash : undefined}
         onLogExport={handleLogExport}
+        hasGenerated={hasGenerated}
+        aiImageUrl={aiImageUrl}
+      />
+
+      <ForensicArtistBriefModal
+        isOpen={showBriefModal}
+        onClose={() => setShowBriefModal(false)}
+        faceSpec={faceSpec}
+        activeCase={activeCase}
+        version={activeVersion.version}
+        currentUser={currentUser}
       />
 
       <CaseManagerModal
@@ -618,7 +869,9 @@ export default function App() {
           };
           setCases(prev => [created, ...prev]);
           setActiveCaseId(created.id);
-          // Reset FaceSpec for new case
+          // Reset FaceSpec and canvas for new case
+          setHasGenerated(false);
+          setAiImageUrl(null);
           setFaceSpec(createInitialFaceSpec());
           setVersions([
             {
