@@ -197,8 +197,9 @@ export const NeuralSketchTab: React.FC<NeuralSketchTabProps> = ({
       };
 
       let success = false;
+      const apiBase = ((import.meta as any).env?.VITE_FS2K_API_URL || '').replace(/\/$/, '');
       try {
-        const res = await fetch('/api/fs2k/generate', {
+        const res = await fetch(`${apiBase}/api/fs2k/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -210,14 +211,16 @@ export const NeuralSketchTab: React.FC<NeuralSketchTabProps> = ({
             // Poll for task completion
             const pollInterval = setInterval(async () => {
               try {
-                const pollRes = await fetch(`/api/fs2k/status?task_id=${data.task_id}`);
+                const pollRes = await fetch(`${apiBase}/api/fs2k/status?task_id=${data.task_id}`);
                 if (pollRes.ok) {
                   const pollData = await pollRes.json();
                   if (pollData.status === 'completed') {
                     clearInterval(pollInterval);
 
                     // Add timestamp to ensure immediate browser image refresh
-                    const cleanUrl = pollData.image_url ? `${pollData.image_url}?t=${Date.now()}` : '/suspect_base.png';
+                    const rawUrl = pollData.image_url || '/suspect_base.png';
+                    const fullUrl = rawUrl.startsWith('http') || !apiBase ? rawUrl : `${apiBase}${rawUrl}`;
+                    const cleanUrl = `${fullUrl}?t=${Date.now()}`;
                     setOutputImageUrl(cleanUrl);
 
                     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
