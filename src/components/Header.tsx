@@ -30,8 +30,8 @@ interface HeaderProps {
   onToggleFeatureDrawer?: () => void;
   isFeatureDrawerOpen?: boolean;
   statedCount?: number;
-  activeTab?: 'studio' | 'surgical';
-  onTabChange?: (tab: 'studio' | 'surgical') => void;
+  activeTab?: 'studio' | 'surgical' | 'neural';
+  onTabChange?: (tab: 'studio' | 'surgical' | 'neural') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -101,6 +101,21 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Surgical Alterations</span>
             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-red-100 text-red-800 border border-red-200">
               FUGITIVE
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('neural')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'neural'
+                ? 'bg-white text-[#6B4E2E] shadow-2xs'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[#8C6D46]" />
+            <span>AI Sketch Generator</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300">
+              FS2K
             </span>
           </button>
         </div>

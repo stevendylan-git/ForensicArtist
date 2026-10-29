@@ -35,6 +35,7 @@ import { ExportModal } from './components/ExportModal';
 import { CaseManagerModal } from './components/CaseManagerModal';
 import { ForensicArtistBriefModal } from './components/ForensicArtistBriefModal';
 import { SurgicalAlterationsTab } from './components/SurgicalAlterationsTab';
+import { NeuralSketchTab } from './components/NeuralSketchTab';
 
 export default function App() {
   // Demo Users / Role
@@ -107,7 +108,7 @@ export default function App() {
   const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [styleMode, setStyleMode] = useState<'charcoal' | 'photoreal'>('photoreal');
-  const [activeTab, setActiveTab] = useState<'studio' | 'surgical'>('studio');
+  const [activeTab, setActiveTab] = useState<'studio' | 'surgical' | 'neural'>('studio');
 
   // Helper to compile stated vs unstated feature names for context-awareness
   const getFaceSpecContext = (spec: FaceSpec) => {
@@ -773,7 +774,7 @@ export default function App() {
         onTabChange={setActiveTab}
       />
 
-      {/* Main Studio View OR Surgical Alterations Tab */}
+      {/* Main Studio View OR Surgical Alterations Tab OR Neural Generator Tab */}
       {activeTab === 'studio' ? (
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
           {/* Left Column: Cognitive Elicitation Dialogue (5 cols) */}
@@ -819,7 +820,7 @@ export default function App() {
             />
           </div>
         </main>
-      ) : (
+      ) : activeTab === 'surgical' ? (
         <SurgicalAlterationsTab
           faceSpec={faceSpec}
           aiImageUrl={aiImageUrl}
@@ -835,6 +836,32 @@ export default function App() {
               caseId: activeCase.id,
               action,
               resource: `/cases/${activeCase.id}/alterations`,
+              outcome: 'SUCCESS',
+              details,
+            });
+            const updatedLedger = [...auditEntries, audit];
+            setAuditEntries(updatedLedger);
+            const verifyRes = await verifyAuditLedgerChain(updatedLedger);
+            setAuditResult(verifyRes);
+          }}
+        />
+      ) : (
+        <NeuralSketchTab
+          faceSpec={faceSpec}
+          activeCase={activeCase}
+          currentRole={currentRole}
+          onSendToSurgicalTab={(img) => {
+            setAiImageUrl(img);
+            setHasGenerated(true);
+            setActiveTab('surgical');
+          }}
+          onLogAuditAction={async (action, details) => {
+            const audit = await createSignedAuditEntry(auditEntries, {
+              userId: currentUser.id,
+              role: currentUser.role,
+              caseId: activeCase.id,
+              action,
+              resource: `/cases/${activeCase.id}/neural-generator`,
               outcome: 'SUCCESS',
               details,
             });
